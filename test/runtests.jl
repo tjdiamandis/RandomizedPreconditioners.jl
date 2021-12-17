@@ -1,6 +1,9 @@
-using RandomizedPreconditioners
 using Test
 
-@testset "RandomizedPreconditioners.jl" begin
-    # Write your tests here.
-end
+import RandomizedPreconditioners
+const RP = RandomizedPreconditioners
+
+using LinearAlgebra
+using Random
+
+include("sketch.jl")
