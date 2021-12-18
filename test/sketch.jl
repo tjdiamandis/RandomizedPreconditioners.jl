@@ -27,7 +27,7 @@
     z = zeros(n)
 
     @testset "Adaptive Sketch Building" begin
-        Anys_adapt = RP.adaptive_nystrom_approx(A, 2)
+        Anys_adapt = RP.adaptive_approx(A, 2, RP.NystromSketch)
         @test round(128 - rank(Anys_adapt) * 1/.9) == 0       # Stops at r = 128, k = 115
         @test opnorm(A - Matrix(Anys_adapt)) <= 1e-6        
     end
