@@ -11,11 +11,11 @@
     λ = eigvals(A; sortby=x->-x)
     Anys = RP.NystromSketch(A, k, r)
     @test λ[1:k] ≈ eigvals(Anys)
-    @test ≈(RP.estimate_norm_E(A, Anys; q=10), opnorm(A - Matrix(Anys)); rtol=1e-2)
+    @test ≈(RP.estimate_norm_E(A, Anys; q=20), opnorm(A - Matrix(Anys)); rtol=1e-2)
 
     k, r = k ÷ 2, r ÷ 2
     Anys = RP.NystromSketch(A, k, r)
-    @test ≈(RP.estimate_norm_E(A, Anys; q=10), opnorm(A - Matrix(Anys)); rtol=1e-1)
+    @test ≈(RP.estimate_norm_E(A, Anys; q=50), opnorm(A - Matrix(Anys)); rtol=2e-1)
 
     x = randn(n)
     y = Anys * x
