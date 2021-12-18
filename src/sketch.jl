@@ -30,13 +30,14 @@ function NystromSketch(A::Matrix{T}, k::Int, r::Int; check=false) where {T <: Re
 end
 
 # Define basic properties
-Base.size(Anys::NystromSketch) = (size(Anys.U, 1), size(Anys.U, 1))
-Base.size(Anys::NystromSketch, d::Int) = d <= 2 ? size(Anys)[d] : 1
-LinearAlgebra.rank(Anys::NystromSketch) = size(Anys.U, 2)
-Matrix(Anys::NystromSketch) = Anys.U*Anys.Λ*Anys.U'
+Base.size(Ahat::FactoredSketch) = (size(Ahat.U, 1), size(Ahat.U, 1))
+Base.size(Ahat::FactoredSketch, d::Int) = d <= 2 ? size(Ahat)[d] : 1
+LinearAlgebra.rank(Ahat::FactoredSketch) = size(Ahat.U, 2)
+LinearAlgebra.svdvals(Ahat::FactoredSketch) = Ahat.Λ.diag
 
 # Define operations for Nystrom Sketch
-LinearAlgebra.eigvals(Anys::NystromSketch) = Anys.Λ.diag
+Matrix(Anys::NystromSketch) = Anys.U*Anys.Λ*Anys.U'
+LinearAlgebra.eigvals(Anys::NystromSketch) = Anys.Λ.diag    # decreasing order
 
 function LinearAlgebra.mul!(y, Anys::NystromSketch, x; cache=zeros(rank(Anys)))
     length(y) != length(x) || length(y) != size(Anys, 1) && error(DimensionMismatch())

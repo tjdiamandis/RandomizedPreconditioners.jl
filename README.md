@@ -5,6 +5,7 @@
 
 This package contains several _randomized preconditioners_, which use 
 randomized numerical linear algebra to construct approximate inverses of matrices.
+These approximate inverses can dramatically speed up iterative linear system solvers.
 
 ## Preconditioners
 
@@ -15,7 +16,7 @@ import RandomizedPreconditioners
 const RP = RandomizedPreconditioners
 Â = NystromSketch(A, k, r)
 ```
-where `k` and `r` are parameters.
+where `k` and `r` are parameters with `k ≤ r`.
 
 We can use `Â` to construct a preconditioner `P ≈ A + μ*I` for the system 
 `(A + μ*I)x = b`, which is solved by conjugate gradients.

@@ -2,7 +2,7 @@
     ## Compare "best" vs random preconditioner on random example
     # Data
     Random.seed!(0)
-    n, r_true = 1000, 100
+    n, r_true = 500, 100
     A = randn(n, r_true)
     A = A*A'
 
@@ -10,6 +10,10 @@
     k = round(Int, 0.9*r)
     λ = eigvals(A; sortby=x->-x)
     Anys = RP.NystromSketch(A, k, r)
+    @test size(Anys, 1) == n && size(Anys, 2) == n
+    @test rank(Anys) == k
+    @test λ[1:k] ≈ svdvals(Anys)
+
     @test λ[1:k] ≈ eigvals(Anys)
     @test ≈(RP.estimate_norm_E(A, Anys; q=20), opnorm(A - Matrix(Anys)); rtol=1e-2)
 
