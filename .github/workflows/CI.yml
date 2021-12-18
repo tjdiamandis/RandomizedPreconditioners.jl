@@ -1,9 +1,9 @@
 name: CI
 on:
   push:
-    # branches:
-    #   - main
-    # tags: '*'
+    branches:
+      - main
+    tags: '*'
   pull_request:
 concurrency:
   # Skip intermediate builds: always.
@@ -25,10 +25,6 @@ jobs:
           - macOS-latest
         arch:
           - x64
-          - x86
-        exclude:
-          - os: macOS-latest
-            arch: x86
     steps:
       - uses: actions/checkout@v2
       - uses: julia-actions/setup-julia@v1
