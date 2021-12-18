@@ -1,6 +1,7 @@
 @testset "Nystrom Sketch" begin
     ## Compare "best" vs random preconditioner on random example
     # Data
+    Random.seed!(0)
     n, r_true = 1000, 100
     A = randn(n, r_true)
     A = A*A'
