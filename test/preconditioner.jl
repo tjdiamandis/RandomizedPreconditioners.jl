@@ -15,9 +15,11 @@
     
     Ptrue = Symmetric(1/(D[k+1] + μ) * Vk*(Diagonal(Dk) + μ*I)*Vk' + (I - Vk*Vk'))
     Ptrue_inv = Symmetric((D[k+1] + μ) * Vk * Diagonal(1 ./ (Dk .+ μ)) * Vk' + (I - Vk*Vk'))
+
     
     @testset "Standard" begin
         P = RP.NystromPreconditioner(Anys, μ)
+        @test eltype(P) == Float64
         @test opnorm(Ptrue - Matrix(P)) < μ
         for _ in 1:10
             x = randn(n)
@@ -26,12 +28,13 @@
             ldiv!(P, x)
             @test y ≈ x
         end
-
+        
         
     end
-
+    
     @testset "Inverse" begin
         Pinv = RP.NystromPreconditionerInverse(Anys, μ)
+        @test eltype(Pinv) == Float64
         @test opnorm(Ptrue_inv - Matrix(Pinv)) < μ
         for _ in 1:10
             x = randn(n)
