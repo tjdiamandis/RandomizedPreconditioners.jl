@@ -72,10 +72,10 @@ function adaptive_nystrom_approx(A::Matrix{T}, r0::Int; r_inc_factor=2.0, k_fact
     Enorm = Inf
     Anys = nothing
     while Enorm > tol && r < n
-        k = Int(round(k_factor*r))
+        k = round(Int, k_factor*r)
         Anys = NystromSketch(A, k, r; check=check)
         Enorm = estimate_norm_E(A, Anys; q=q, cache=cache)
-        r = Int(r_inc_factor*r)
+        r = round(Int, r_inc_factor*r)
     end
     return Anys
 end

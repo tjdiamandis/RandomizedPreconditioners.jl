@@ -6,8 +6,8 @@
     A = randn(n, r_true)
     A = A*A'
 
-    r = Int(r_true * 1.2)
-    k = Int(0.9*r)
+    r = round(Int, r_true * 1.2)
+    k = round(Int, 0.9*r)
     λ = eigvals(A; sortby=x->-x)
     Anys = RP.NystromSketch(A, k, r)
     @test λ[1:k] ≈ eigvals(Anys)

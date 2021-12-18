@@ -4,7 +4,7 @@
     A = randn(n, r_true)
     A = A*A'
     
-    r = Int(r_true * 1.2)
+    r = round(Int, r_true * 1.2)
     k = round(Int, 0.9*r)
     μ = 1e-3
     Anys = RP.NystromSketch(A, k, r)
