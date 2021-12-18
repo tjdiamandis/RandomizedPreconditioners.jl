@@ -38,4 +38,4 @@ x, stats = cg(A+μ*I, b; M=Pinv)
 
 
 ## References
-[1] Zachary Frangella, Joel A Tropp, and Madeleine Udell. “Randomized Nyström Precon-ditioning.” In:arXiv preprint arXiv:2110.02820(2021).
+[1] Zachary Frangella, Joel A Tropp, and Madeleine Udell. “Randomized Nyström Preconditioning.” In:arXiv preprint arXiv:2110.02820(2021). https://arxiv.org/abs/2110.02820
