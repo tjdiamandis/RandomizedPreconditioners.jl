@@ -49,11 +49,11 @@ end
         @test size(Mhat, 1) == size(M, 1) && size(Mhat, 2) == size(M, 2)
         @test rank(Mhat) == k
         @test svdvals(M)[1:k] ≈ svdvals(Mhat)
-        @test ≈(RP.estimate_norm_E(M, Mhat; q=20), opnorm(M - Matrix(Mhat)); rtol=1e-2)
+        @test ≈(RP.estimate_norm_E(M, Mhat; q=20), opnorm(M - Matrix(Mhat)); rtol=1e-1)
 
         k, r = k ÷ 2, r ÷ 2
         Mhat = RP.RandomizedSVD(M, k, r; q=5)
-        @test ≈(RP.estimate_norm_E(M, Mhat; q=50), opnorm(M - Matrix(Mhat)); rtol=2e-1)
+        @test ≈(RP.estimate_norm_E(M, Mhat; q=50), opnorm(M - Matrix(Mhat)); rtol=1e-1)
 
         x = randn(size(Mhat, 2))
         y = Mhat * x
