@@ -12,9 +12,8 @@ These approximate inverses can dramatically speed up iterative linear system sol
 ### Positive Definite Systems: Randomized Nyström Preconditioner [1]
 Given a positive semidefinite matrix `A`, the Nyström Sketch `Â ≈ A` is constructed by
 ```julia
-import RandomizedPreconditioners
-const RP = RandomizedPreconditioners
-Â = RP.NystromSketch(A, k, r)
+using RandomizedPreconditioners
+Â = NystromSketch(A, k, r)
 ```
 where `k` and `r` are parameters with `k ≤ r`.
 
@@ -23,12 +22,12 @@ We can use `Â` to construct a preconditioner `P ≈ A + μ*I` for the system
 
 If you need `P` (e.g., `IterativeSolvers.jl`), use
 ```julia
-P = RP.NystromPreconditioner(Anys, μ)
+P = NystromPreconditioner(Anys, μ)
 ```
 
 If you need `P⁻¹` (e.g., `Krylov.jl`), use
 ```julia
-Pinv = RP.NystromPreconditionerInverse(Anys, μ)
+Pinv = NystromPreconditionerInverse(Anys, μ)
 ```
 
 These preconditioners can be simply passed into the solvers, for example
@@ -47,9 +46,8 @@ used to construct preconditioners.
 
 ### Positive Semidefinite Matrices: Nyström Sketch [2, Alg. 16]
 ```julia
-import RandomizedPreconditioners
-const RP = RandomizedPreconditioners
-Â = RP.NystromSketch(A, k, r)
+using RandomizedPreconditioners
+Â = NystromSketch(A, k, r)
 ```
 
 ### General Matrices: Randomized SVD [2, Alg. 8] 
@@ -57,9 +55,8 @@ The Randomized SVD uses the powered randomized rangefinder [2, Alg. 9] with
 powering parameter `q`. Small values of `q` (e.g., `5`) seem to perform 
 well. Note that the complexity increases to `O(n²rq)`.
 ```julia
-import RandomizedPreconditioners
-const RP = RandomizedPreconditioners
-Â = RP.RandomizedSVD(A, k, r; q=10)
+using RandomizedPreconditioners
+Â = RandomizedSVD(A, k, r; q=10)
 ```
 
 
