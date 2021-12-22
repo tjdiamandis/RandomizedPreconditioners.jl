@@ -26,7 +26,7 @@
     z = zeros(n)
 
     @testset "Adaptive Sketch Building" begin
-        Anys_adapt = RP.adaptive_approx(A, 2, RP.NystromSketch)
+        Anys_adapt = RP.adaptive_sketch(A, 2, RP.NystromSketch)
         @test round(128 - rank(Anys_adapt) * 1/.9) == 0       # Stops at r = 128, k = 115
         @test opnorm(A - Matrix(Anys_adapt)) <= 1e-6        
     end
@@ -61,9 +61,7 @@ end
     end
 
     @testset "Adaptive Sketch Building" begin
-        B̂ = RP.adaptive_approx(B, 2, RP.RandomizedSVD)
-        println(svdvals(B)[1:5])
-        println(svdvals(B̂)[1:5])
+        B̂ = RP.adaptive_sketch(B, 2, RP.RandomizedSVD)
         @test round(128 - rank(B̂) * 1/.9) == 0       # Stops at r = 128, k = 115
         @test opnorm(B - Matrix(B̂)) <= 1e-6        
     end

@@ -184,7 +184,7 @@ end
 # By [Frangella et al., Prop 5.3], have that κ(P^{-1/2} * A * P^{-1/2}) ≤ (λᵣ + μ + ||E||)/μ
 # TODO: Add verbose logging
 # TODO: Could improve efficiency here, especially if the same sketch matrix is reused
-function adaptive_approx(A::Matrix{T}, r0::Int, SketchType::Type{<:Sketch}; r_inc_factor=2.0, k_factor=0.9, tol=1e-6, check=false, q_norm=20, q_sketch=5, verbose=false) where {T <: Real}
+function adaptive_sketch(A::Matrix{T}, r0::Int, SketchType::Type{<:Sketch}; r_inc_factor=2.0, k_factor=0.9, tol=1e-6, check=false, q_norm=20, q_sketch=5, verbose=false) where {T <: Real}
     check && check_input(A, SketchType)
     m, n = size(A)
     cache = (
