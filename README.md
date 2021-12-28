@@ -59,6 +59,10 @@ using RandomizedPreconditioners
 Â = RandomizedSVD(A, k, r; q=10)
 ```
 
+## Roadmap
+- [ ] Add generalized Nystrom
+- [ ] Add general preconditioners (left & right)
+
 
 ## References
 [1] Zachary Frangella, Joel A Tropp, and Madeleine Udell. “Randomized Nyström Preconditioning.” In:arXiv preprint arXiv:2110.02820(2021). https://arxiv.org/abs/2110.02820
