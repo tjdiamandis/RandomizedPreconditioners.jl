@@ -77,11 +77,10 @@ end
 # ------------------------------------------------------------------------------
 # |                               Randomized SVD                               |
 # ------------------------------------------------------------------------------
-#TODO: switch Vt for V?
 struct RandomizedSVD{T} <: FactoredSketch{T}
     U::Matrix{T}
     Λ::Diagonal{T, Vector{T}}
-    Vt::Matrix{T}
+    V::Matrix{T}
 end
 
 # [Martinsson & Tropp, Algorithm 8]
@@ -95,15 +94,15 @@ function RandomizedSVD(A::Matrix{T}, k::Int, r::Int; q::Int=0) where {T <: Real}
     C = Q'*A
     Û, Σ, V = svd(C)
     U = Q*Û
-    return RandomizedSVD(U[:, 1:k], Diagonal(Σ[1:k]), V'[1:k, :])
+    return RandomizedSVD(U[:, 1:k], Diagonal(Σ[1:k]), V[:, 1:k])
 end
 
 check_input(A, ::Type{RandomizedSVD}) = nothing
 Sketch(A, k, r, ::Type{RandomizedSVD}; check=false, q=5) = RandomizedSVD(A, k, r; q=q)
 
 # Define basic operations
-Base.size(Ahat::RandomizedSVD) = (size(Ahat.U, 1), size(Ahat.Vt, 2))
-Matrix(Ahat::RandomizedSVD) = Ahat.U*Ahat.Λ*Ahat.Vt
+Base.size(Ahat::RandomizedSVD) = (size(Ahat.U, 1), size(Ahat.V, 1))
+Matrix(Ahat::RandomizedSVD) = Ahat.U*Ahat.Λ*Ahat.V'
 function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, Ahat::RandomizedSVD)
     Base.showarg(stdout, Ahat, true)
     println(io, "\nU factor:")
@@ -111,13 +110,13 @@ function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, Ahat::RandomizedSVD
     println(io, "\nsingular values:")
     show(io, mime, Ahat.Λ.diag)
     println(io, "\nV factor:")
-    show(io, mime, Ahat.Vt)
+    show(io, mime, Ahat.V)
 end
 
 function LinearAlgebra.mul!(y, Ahat::RandomizedSVD, x; cache=zeros(rank(Ahat)))
     length(x) != size(Ahat, 2) || length(y) != size(Ahat, 1) && error(DimensionMismatch())
     r = rank(Ahat)
-    @views mul!(cache[1:r], Ahat.Vt, x)
+    @views mul!(cache[1:r], Ahat.V', x)
     @views cache[1:r] .*= Ahat.Λ.diag
     @views mul!(y, Ahat.U, cache[1:r])
     return nothing
@@ -129,7 +128,7 @@ function LinearAlgebra.mul!(x, Ahat_::Adjoint{T, RandomizedSVD{T}}, y; cache=zer
     r = rank(Ahat)
     @views mul!(cache[1:r], Ahat.U', y)
     @views cache[1:r] .*= Ahat.Λ.diag
-    @views mul!(x, Ahat.Vt', cache[1:r])
+    @views mul!(x, Ahat.V, cache[1:r])
     return nothing
 end
 
