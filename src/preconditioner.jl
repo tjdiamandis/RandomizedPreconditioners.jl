@@ -1,6 +1,9 @@
 abstract type Preconditioner{T} end
 
-mutable struct NystromPreconditioner{T <: Real}
+# ------------------------------------------------------------------------------
+# |                           Nystrom Preconditioner                           |
+# ------------------------------------------------------------------------------
+mutable struct NystromPreconditioner{T <: Real} <: Preconditioner{T}
     A_nys::NystromSketch{T}
     λ::T
     μ::T
