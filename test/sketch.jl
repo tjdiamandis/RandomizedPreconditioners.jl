@@ -32,6 +32,41 @@
     end
 end
 
+@testset "EigenSketch" begin
+    # Data
+    Random.seed!(0)
+    n, r1, r2 = 500, 60, 40
+    r_true = r1+r2
+    AAT(n, r) = randn(n, r) |> A->A*A'
+    A = AAT(n, r1) - AAT(n, r2)
+
+    r = round(Int, r_true * 1.2)
+    k = round(Int, 0.9*r)
+    A_sketch = RP.EigenSketch(A, k, r; check=true, q=5)
+    @test size(A_sketch, 1) == n && size(A_sketch, 2) == n
+    @test rank(A_sketch) == k
+    λ = eigvals(A; sortby=x->-x) |> x->x[abs.(x) .≥ 1e-8]
+    λhat =  eigvals(A_sketch) |> x->x[abs.(x) .≥ 1e-8]
+
+    @test λ ≈ λhat
+    @test RP.estimate_norm_E(A, A_sketch; q=20) <= 1e-8 && opnorm(A - Matrix(A_sketch)) <= 1e-8
+
+    k, r = k ÷ 2, r ÷ 2
+    A_sketch = RP.EigenSketch(A, k, r; q=100)
+    @test ≈(RP.estimate_norm_E(A, A_sketch; q=100), opnorm(A - Matrix(A_sketch)); rtol=2e-1)
+
+    x = randn(n)
+    y = A_sketch * x
+    @test y ≈ Matrix(A_sketch) * x
+    z = zeros(n)
+
+    @testset "Adaptive Sketch Building" begin
+        Anys_adapt = RP.adaptive_sketch(A, 2, RP.EigenSketch)
+        @test round(128 - rank(Anys_adapt) * 1/.9) == 0       # Stops at r = 128, k = 115
+        @test opnorm(A - Matrix(Anys_adapt)) <= 1e-6        
+    end
+end
+
 @testset "Randomized SVD" begin
     # Data
     Random.seed!(0)

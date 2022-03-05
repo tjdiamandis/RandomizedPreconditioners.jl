@@ -10,6 +10,13 @@ struct NystromSketch{T} <: FactoredSketch{T}
     Λ::Diagonal{T, Vector{T}}
 end
 
+#TODO: should this just wrap / generalize a NystromSketch (inc. flag for PSD)
+# Specifically NystromSketch being a subtype of eigensketch
+struct EigenSketch{T} <: FactoredSketch{T}
+    U::Matrix{T}
+    Λ::Diagonal{T, Vector{T}}
+end
+
 # Constructs Â_nys in factored form
 # Â_nys = (AΩ)(ΩᵀAΩ)^†(AΩ)^ᵀ = UΛUᵀ
 # [Martinsson & Tropp, Algorithm 16]
@@ -34,12 +41,12 @@ Sketch(A, k, r, ::Type{NystromSketch}; check=false, q=0) = NystromSketch(A, k, r
 
 # Define basic properties
 Base.eltype(::Sketch{T}) where {T} = T
-Base.size(Ahat::NystromSketch) = (size(Ahat.U, 1), size(Ahat.U, 1))
+Base.size(Ahat::Union{NystromSketch, EigenSketch}) = (size(Ahat.U, 1), size(Ahat.U, 1))
 Base.size(Ahat::FactoredSketch, d::Int) = d <= 2 ? size(Ahat)[d] : 1
 LinearAlgebra.adjoint(A::Sketch) = Adjoint(A)
 LinearAlgebra.rank(Ahat::FactoredSketch) = size(Ahat.U, 2)
 LinearAlgebra.svdvals(Ahat::FactoredSketch) = Ahat.Λ.diag
-function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, Ahat::NystromSketch)
+function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, Ahat::Union{NystromSketch, EigenSketch})
     Base.showarg(stdout, Ahat, true)
     println(io, "U factor:")
     show(io, mime, Ahat.U)
@@ -53,10 +60,10 @@ function Base.show(io::IO, Ahat_::Adjoint{<:Any, <:Sketch})
 end
 
 # Define operations for Nystrom Sketch
-Matrix(Anys::NystromSketch) = Anys.U*Anys.Λ*Anys.U'
-LinearAlgebra.eigvals(Anys::NystromSketch) = Anys.Λ.diag    # decreasing order
+Matrix(Anys::Union{NystromSketch, EigenSketch}) = Anys.U*Anys.Λ*Anys.U'
+LinearAlgebra.eigvals(Anys::Union{NystromSketch, EigenSketch}) = Anys.Λ.diag    # decreasing order
 
-function LinearAlgebra.mul!(y, Anys::NystromSketch, x; cache=zeros(rank(Anys)))
+function LinearAlgebra.mul!(y, Anys::Union{NystromSketch, EigenSketch}, x; cache=zeros(rank(Anys)))
     length(y) != length(x) || length(y) != size(Anys, 1) && error(DimensionMismatch())
     r = rank(Anys)
     @views mul!(cache[1:r], Anys.U', x)
@@ -65,13 +72,43 @@ function LinearAlgebra.mul!(y, Anys::NystromSketch, x; cache=zeros(rank(Anys)))
     return nothing
 end
 
-function LinearAlgebra.:*(Anys::NystromSketch, x::AbstractVector)
+function LinearAlgebra.:*(Anys::Union{NystromSketch, EigenSketch}, x::AbstractVector)
     n = size(Anys, 1)
     y = zeros(n)
     mul!(y, Anys, x)
     return y
 end
 
+
+# ------------------------------------------------------------------------------
+# |                               Randomized Eigendecomposition                               |
+# ------------------------------------------------------------------------------
+function EigenSketch(A::Matrix{T}, k::Int, r::Int; check=false, q::Int=0) where {T <: Real}
+    check && !issymmetric(A) && throw(ArgumentError("A must be symmetric"))
+    k > r && throw(ArgumentError("k must be less than r"))
+    Q = rangefinder(A, r; q=q)
+    C = Q' * A * Q
+    @. C = 0.5 * (C + C')                       #TODO: is this needed for numerics?
+    Λ, V = eigen(C; sortby=x->-real(x))
+    V .= real.(V)
+    Λ .= real(Λ)
+
+    # Find largest magnitude eigenspace
+    p = sortperm(Λ; by=x->-abs(x))
+    Λ = Λ[p][1:k]
+    V = V[:, p][:,1:k]
+
+    # Return st eigvals sorted biggest to smallest
+    pp = sortperm(Λ; by=x->-x)
+    Λ .= Λ[pp]
+    V .= V[:, pp]
+
+    U = Q*V
+    return EigenSketch(U[:, 1:k], Diagonal(Λ))
+end
+
+check_input(A, ::Type{EigenSketch}) = issymmetric(A)
+Sketch(A, k, r, ::Type{EigenSketch}; check=false, q=5) = EigenSketch(A, k, r; check=check, q=q)
 
 
 # ------------------------------------------------------------------------------
@@ -166,7 +203,7 @@ function estimate_norm_E(A::AbstractMatrix{T}, Ahat::Sketch{T}; q=10, cache=noth
         normalize!(u)
 
         # v = (A - Ahat)ᵀ*v
-        if Ahat isa NystromSketch
+        if typeof(Ahat) <: Union{NystromSketch, EigenSketch}
             v .= u
         else
             mul!(v, Ahat', u; cache=cache.Ahat_mul)
@@ -174,7 +211,7 @@ function estimate_norm_E(A::AbstractMatrix{T}, Ahat::Sketch{T}; q=10, cache=noth
             normalize!(v)
         end
 
-        Ehat = dot(u, A, v) - dot(u, Ahat, v)
+        Ehat = abs(dot(u, A, v) - dot(u, Ahat, v))
     end
     return Ehat
 end
