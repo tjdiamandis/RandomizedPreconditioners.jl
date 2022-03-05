@@ -1,5 +1,4 @@
 # [Martinsson & Tropp, Algorithm 7]
-# TODO: testing
 function rangefinder(A::AbstractMatrix{T}, r::Int; q::Int=0) where {T <: Number}
     m, n = size(A)
     if q == 0
@@ -12,6 +11,6 @@ function rangefinder(A::AbstractMatrix{T}, r::Int; q::Int=0) where {T <: Number}
             Y = A*A'*Y
         end
     end
-    
+
     return Array(qr(Y).Q)
 end
