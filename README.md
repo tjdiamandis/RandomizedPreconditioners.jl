@@ -50,6 +50,12 @@ using RandomizedPreconditioners
 Â = NystromSketch(A, k, r)
 ```
 
+### Symmetric Matrices: Eigen Sketch / Generalized Nyström Sketch
+```julia
+using RandomizedPreconditioners
+Â = EigenSketch(A, k, r)
+```
+
 ### General Matrices: Randomized SVD [2, Alg. 8] 
 The Randomized SVD uses the powered randomized rangefinder [2, Alg. 9] with
 powering parameter `q`. Small values of `q` (e.g., `5`) seem to perform 
@@ -60,7 +66,7 @@ Â = RandomizedSVD(A, k, r; q=10)
 ```
 
 ## Roadmap
-- [ ] Add generalized Nystrom
+- [X] Add generalized Nystrom
 - [ ] Add general preconditioners (left & right)
 
 
