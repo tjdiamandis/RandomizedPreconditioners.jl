@@ -66,8 +66,11 @@ Â = RandomizedSVD(A, k, r; q=10)
 ```
 
 ## Roadmap
-- [X] Add generalized Nystrom
-- [ ] Add general preconditioners (left & right)
+- [X] Add generalized Nystrom sketch
+- [ ] Add preconditioner for symmetric systems
+- [ ] Add additional test matrices, e.g., SSFT
+- [ ] Add general preconditioners (left & right) for nonsymmetric systems
+- [ ] Performance improvements
 
 
 ## References
