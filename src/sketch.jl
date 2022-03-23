@@ -20,7 +20,7 @@ end
 # Constructs Â_nys in factored form
 # Â_nys = (AΩ)(ΩᵀAΩ)^†(AΩ)^ᵀ = UΛUᵀ
 # [Martinsson & Tropp, Algorithm 16]
-function NystromSketch(A::Matrix{T}, k::Int, r::Int; check=false) where {T <: Real}
+function NystromSketch(A::AbstractMatrix{T}, k::Int, r::Int; check=false) where {T <: Real}
     check && check_psd(A)
     n = size(A, 1)
 
@@ -83,7 +83,7 @@ end
 # ------------------------------------------------------------------------------
 # |                               Randomized Eigendecomposition                               |
 # ------------------------------------------------------------------------------
-function EigenSketch(A::Matrix{T}, k::Int, r::Int; check=false, q::Int=0) where {T <: Real}
+function EigenSketch(A::AbstractMatrix{T}, k::Int, r::Int; check=false, q::Int=0) where {T <: Real}
     check && !issymmetric(A) && throw(ArgumentError("A must be symmetric"))
     k > r && throw(ArgumentError("k must be less than r"))
     Q = rangefinder(A, r; q=q)
@@ -125,7 +125,7 @@ end
 #   ‘Streaming low-rank matrix approximation with an application to scientiﬁc simulation’
 #   'Finding structure with randomness: probabalistic algorithms for constructing 
 #    approximate matrix decompositions'
-function RandomizedSVD(A::Matrix{T}, k::Int, r::Int; q::Int=0) where {T <: Real}
+function RandomizedSVD(A::AbstractMatrix{T}, k::Int, r::Int; q::Int=0) where {T <: Real}
     k > r && throw(ArgumentError("k must be less than r"))
     Q = rangefinder(A, r; q=q)
     C = Q'*A
@@ -220,7 +220,7 @@ end
 # By [Frangella et al., Prop 5.3], have that κ(P^{-1/2} * A * P^{-1/2}) ≤ (λᵣ + μ + ||E||)/μ
 # TODO: Add verbose logging
 # TODO: Could improve efficiency here, especially if the same sketch matrix is reused
-function adaptive_sketch(A::Matrix{T}, r0::Int, SketchType::Type{<:Sketch}; r_inc_factor=2.0, k_factor=0.9, tol=1e-6, check=false, q_norm=20, q_sketch=5, verbose=false) where {T <: Real}
+function adaptive_sketch(A::AbstractMatrix{T}, r0::Int, SketchType::Type{<:Sketch}; r_inc_factor=2.0, k_factor=0.9, tol=1e-6, check=false, q_norm=20, q_sketch=5, verbose=false) where {T <: Real}
     check && check_input(A, SketchType)
     m, n = size(A)
     cache = (
