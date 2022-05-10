@@ -66,11 +66,25 @@ Â = RandomizedSVD(A, k, r; q=10)
 ```
 
 ## Roadmap
-- [X] Add generalized Nystrom sketch
-- [ ] Add preconditioner for symmetric systems
-- [ ] Add additional test matrices, e.g., SSFT
-- [ ] Add general preconditioners (left & right) for nonsymmetric systems
-- [ ] Performance improvements
+- Test Matrices
+    - [ ] TestMatrix type
+    - [ ] Sparse maps
+    - [ ] Subsampled scrambled randomized Fourier transform (SSRFT)
+    - [ ] Other subsampled trigonometric tranforms (discrete cosine, discrete Hartley)
+    - [ ] Tensor random projection
+- Rangefinders
+    - [ ] Lanzcos randomized rangefinder
+    - [ ] Chebyshev randomized rangefinder
+    - [ ] Incremental rangefinder with updating
+- Sketches & Factorizations
+    - [ ] Powering option / incorporating rangefinder into Nystrom sketch
+    - [ ] powerURV
+    - [ ] CPQR decomposition
+- Preconditioners
+    - [ ] Add preconditioner for symmetric systems
+- Performance
+    - [ ] Avoid redoing computations in adaptive sketch
+    - [ ] General profiling
 
 
 ## References
