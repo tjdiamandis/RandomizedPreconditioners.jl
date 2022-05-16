@@ -1,3 +1,31 @@
+function test_adaptive_sketch(A, SketchType, r_true;
+    tol=1e-6, 
+    ρ=1e-4,
+    k_factor=0.9,
+    condition_number=false,
+)
+    @testset "Adaptive Sketch Building" begin
+        @testset "Norm" begin
+            Anys_adapt = RP.adaptive_sketch(A, 2, SketchType; tol=10tol)
+            @test round(r_true - rank(Anys_adapt) * 1/k_factor) == 0
+            @test opnorm(A - Matrix(Anys_adapt)) <= tol
+        end
+
+        if condition_number
+            @testset "Condition Number" begin
+                Anys_adapt = RP.adaptive_sketch(A, 2, SketchType; tol=100tol, ρ=ρ, condition_number=true)
+                @test round(r_true - rank(Anys_adapt) * 1/k_factor) == 0
+                U, Λ = Anys_adapt.U, Anys_adapt.Λ
+                M = Symmetric( (Λ[end] + ρ)*(U*inv(Λ + ρ*I)*U' + (I - U*U')) * (A + ρ*I) )
+                @test (eigmax(M))/(eigmin(M) + ρ) - 1 <= tol
+            end
+        end
+    end
+
+    return nothing
+end
+
+
 @testset "Nystrom Sketch" begin
     # Data
     Random.seed!(0)
@@ -25,11 +53,7 @@
     @test y ≈ Matrix(Anys) * x
     z = zeros(n)
 
-    @testset "Adaptive Sketch Building" begin
-        Anys_adapt = RP.adaptive_sketch(A, 2, RP.NystromSketch)
-        @test round(128 - rank(Anys_adapt) * 1/.9) == 0       # Stops at r = 128, k = 115
-        @test opnorm(A - Matrix(Anys_adapt)) <= 1e-6        
-    end
+    test_adaptive_sketch(A, RP.NystromSketch, 128; k_factor=0.9, ρ=1e-4, tol=1e-6, condition_number=true)
 end
 
 @testset "EigenSketch" begin
@@ -60,11 +84,7 @@ end
     @test y ≈ Matrix(A_sketch) * x
     z = zeros(n)
 
-    @testset "Adaptive Sketch Building" begin
-        Anys_adapt = RP.adaptive_sketch(A, 2, RP.EigenSketch)
-        @test round(128 - rank(Anys_adapt) * 1/.9) == 0       # Stops at r = 128, k = 115
-        @test opnorm(A - Matrix(Anys_adapt)) <= 1e-6        
-    end
+    test_adaptive_sketch(A, RP.EigenSketch, 128; k_factor=0.9, tol=1e-6)
 end
 
 @testset "Randomized SVD" begin
@@ -95,10 +115,6 @@ end
         @test y ≈ Matrix(Mhat) * x
     end
 
-    @testset "Adaptive Sketch Building" begin
-        B̂ = RP.adaptive_sketch(B, 2, RP.RandomizedSVD)
-        @test round(128 - rank(B̂) * 1/.9) == 0       # Stops at r = 128, k = 115
-        @test opnorm(B - Matrix(B̂)) <= 1e-6        
-    end
+    test_adaptive_sketch(A, RP.RandomizedSVD, 128; k_factor=0.9, tol=1e-6)
     
 end

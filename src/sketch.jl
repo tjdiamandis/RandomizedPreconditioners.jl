@@ -220,7 +220,18 @@ end
 # By [Frangella et al., Prop 5.3], have that κ(P^{-1/2} * A * P^{-1/2}) ≤ (λᵣ + μ + ||E||)/μ
 # TODO: Add verbose logging
 # TODO: Could improve efficiency here, especially if the same sketch matrix is reused
-function adaptive_sketch(A::AbstractMatrix{T}, r0::Int, SketchType::Type{<:Sketch}; r_inc_factor=2.0, k_factor=0.9, tol=1e-6, check=false, q_norm=20, q_sketch=5, verbose=false) where {T <: Real}
+function adaptive_sketch(
+    A::AbstractMatrix{T}, r0::Int, SketchType::Type{<:Sketch};
+    condition_number=false,
+    ρ=1e-4,
+    r_inc_factor=2.0,
+    k_factor=0.9,
+    tol=1e-6,
+    check=false,
+    q_norm=20,
+    q_sketch=5,
+    verbose=false
+) where {T <: Real}
     check && check_input(A, SketchType)
     m, n = size(A)
     cache = (
@@ -229,13 +240,18 @@ function adaptive_sketch(A::AbstractMatrix{T}, r0::Int, SketchType::Type{<:Sketc
         Ahat_mul=zeros(n)
     )
     r = r0
-    Enorm = Inf
     Ahat = nothing
-    while Enorm > tol && r < n
+    error_metric = Inf
+    while error_metric > tol && r < n
         k = round(Int, k_factor*r)
         Ahat = Sketch(A, k, r, SketchType; check=check, q=q_sketch)
-        Enorm = estimate_norm_E(A, Ahat; q=q_norm, cache=cache)
-        verbose && @info "||E|| = $Enorm, r = $r"
+        if condition_number
+            error_metric = (Ahat.Λ[end] + ρ) / ρ - 1
+            verbose && @info "κ = $error_metric, r = $r"
+        else
+            error_metric = estimate_norm_E(A, Ahat; q=q_norm, cache=cache)
+            verbose && @info "||E|| = $error_metric, r = $r"
+        end
         r = round(Int, r_inc_factor*r)
     end
     return Ahat
