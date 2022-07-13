@@ -1,4 +1,4 @@
-@testset "eigenvalues" begin
+@testset "Eigenvalues" begin
     Random.seed!(0)
     n, r_true = 500, 100
     A = randn(n, r_true)
@@ -13,4 +13,7 @@
     
     λmin_lanczos = RP.eigmin_lanczos(A + 1e-1*I)
     @test isapprox(λmin_lanczos, 1e-1, rtol=1e-2)
+
+    λmax, λmin = RP.eig_lanczos(A; eigtype=0)
+    @test λmax ≈ λmax_lanczos && λmin + 1e-1 ≈ λmin_lanczos
 end

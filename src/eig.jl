@@ -77,6 +77,11 @@ function eig_lanczos(M::AbstractMatrix; q::Int=0, cache=nothing, tol=1e-12, eigt
 
     # LAPACK call for SymTridiagonal eigenvectors
     # https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.LAPACK.stegr!
+    if eigtype == 0
+        λmax = LAPACK.stegr!('N', 'I', cache.w[1:i], cache.p[1:i-1], 0.0, 0.0, i, i)[1][1]
+        λmin = LAPACK.stegr!('N', 'I', cache.w[1:i], cache.p[1:i-1], 0.0, 0.0, 1, 1)[1][1]
+        return λmax, λmin
+    end
     ind = eigtype == 1 ? i : 1
     return LAPACK.stegr!('N', 'I', cache.w[1:i], cache.p[1:i-1], 0.0, 0.0, ind, ind)[1][1]
 end
