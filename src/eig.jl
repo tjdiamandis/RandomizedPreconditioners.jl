@@ -39,7 +39,14 @@ function init_cache_eigmax_lanczos(n, max_iters)
 end
 
 
-function eig_lanczos(M::AbstractMatrix; q::Int=0, cache=nothing, tol=1e-12, eigtype=1) where {T}
+function eig_lanczos(
+    M::AbstractMatrix; 
+    q::Int=0,
+    cache=nothing,
+    tol=1e-12, 
+    eigtype=1, 
+    orthogonalize=false
+) where {T}
     n = size(M, 1)
     iszero(q) && (q = ceil(Int, 20*log(n)))
     max_iters = min(q, n-1)
@@ -66,6 +73,16 @@ function eig_lanczos(M::AbstractMatrix; q::Int=0, cache=nothing, tol=1e-12, eigt
             @views vi1 .-= cache.p[i-1] .* cache.V[:,i-1]
         end
 
+        # Reorthogonalize w double Gram-Schmidt
+        if orthogonalize
+            # vᵢ₊₁ = vᵢ₊₁ - V[:, 1:i]*V[:, 1:i]'*vᵢ₊₁
+            @views mul!(cache.tmp1[1:i], cache.V[:, 1:i]', vi1)
+            @views mul!(vi1, cache.V[:, 1:i], cache.tmp1[1:i], -1.0, 1.0)
+            
+            @views mul!(cache.tmp1[1:i], cache.V[:, 1:i]', vi1)
+            @views mul!(vi1, cache.V[:, 1:i], cache.tmp1[1:i], -1.0, 1.0)
+        end
+
         cache.p[i] = norm(vi1)
         cache.p[i] < tol && (break; i+=1)
 
@@ -75,7 +92,7 @@ function eig_lanczos(M::AbstractMatrix; q::Int=0, cache=nothing, tol=1e-12, eigt
     end
     i -= 1
 
-    # LAPACK call for SymTridiagonal eigenvectors
+    # LAPACK call for SymTridiagonal eigenvalues
     # https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.LAPACK.stegr!
     if eigtype == 0
         λmax = LAPACK.stegr!('N', 'I', cache.w[1:i], cache.p[1:i-1], 0.0, 0.0, i, i)[1][1]
@@ -86,7 +103,7 @@ function eig_lanczos(M::AbstractMatrix; q::Int=0, cache=nothing, tol=1e-12, eigt
     return LAPACK.stegr!('N', 'I', cache.w[1:i], cache.p[1:i-1], 0.0, 0.0, ind, ind)[1][1]
 end
 
-eigmax_lanczos(M::AbstractMatrix; q::Int=0, cache=nothing, tol=1e-12) =
-    eig_lanczos(M; q=q, cache=cache, tol=tol, eigtype=1)
-eigmin_lanczos(M::AbstractMatrix; q::Int=0, cache=nothing, tol=1e-12) =
-    eig_lanczos(M; q=q, cache=cache, tol=tol, eigtype=-1)
+eigmax_lanczos(M::AbstractMatrix; q::Int=0, cache=nothing, tol=1e-12, orthogonalize=false) =
+    eig_lanczos(M; q=q, cache=cache, tol=tol, eigtype=1, orthogonalize=orthogonalize)
+eigmin_lanczos(M::AbstractMatrix; q::Int=0, cache=nothing, tol=1e-12, orthogonalize=false) =
+    eig_lanczos(M; q=q, cache=cache, tol=tol, eigtype=-1, orthogonalize=orthogonalize)
