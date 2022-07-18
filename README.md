@@ -22,7 +22,7 @@ We can use `Â` to construct a preconditioner `P ≈ A + μ*I` for the system
 
 If you need `P` (e.g., `IterativeSolvers.jl`), use
 ```julia
-P = NystromPreconditioner(Anys, μ)
+P = NystromPreconditioner(Â, μ)
 ```
 
 If you need `P⁻¹` (e.g., `Krylov.jl`), use
@@ -34,6 +34,18 @@ These preconditioners can be simply passed into the solvers, for example
 ```julia
 using Krylov
 x, stats = cg(A+μ*I, b; M=Pinv)
+```
+
+The package [`LinearSolve.jl`](https://github.com/SciML/LinearSolve.jl) defines
+a convenient common interface to access all the Krylov implementations, which
+makes testing very easy.
+```julia
+using RandomizedPreconditioners, LinearSolve
+Â = NystromSketch(A, k, r)
+P = NystromPreconditioner(Â, μ)
+
+prob = LinearProblem(A, b)
+sol = solve(prob, IterativeSolversJL_CG(), Pl=P)
 ```
 
 
@@ -63,6 +75,22 @@ well. Note that the complexity increases to `O(n²rq)`.
 ```julia
 using RandomizedPreconditioners
 Â = RandomizedSVD(A, k, r; q=10)
+```
+
+## Eigenvalues
+We implement two algorithms for a randomized estimate of the maximum eigenvalue
+for a PSD matrix: the power method and the Lanczos method.
+```julia
+using RandomizedPreconditioners
+const RP = RandomizedPreconditioners
+
+λmax_power =  RP.eigmax_power(A)
+λmax_lanczos = RP.eigmax_lanczos(A)
+λmin_lanczos = RP.eigmin_lanczos(A)
+```
+The Lanczos method can estimate the maximum and minimum eigenvalue simultaneously:
+```julia 
+λmax, λmin = RP.eig_lanczos(A; eigtype=0)
 ```
 
 ## Roadmap
