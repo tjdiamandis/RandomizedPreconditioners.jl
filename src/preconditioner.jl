@@ -80,3 +80,75 @@ function LinearAlgebra.:*(P::NystromPreconditionerInverse{T}, x::Vector{T}) wher
     mul!(y, P, x)
     return y
 end
+
+
+
+# ------------------------------------------------------------------------------
+# |                             SVD Preconditioner                             |
+# ------------------------------------------------------------------------------
+#TODO: one abstract class for both left and right?
+mutable struct SVDPreconditionerLeft{T <: Real} <: Preconditioner{T}
+    Ahat::RandomizedSVD{T}
+    λ::T
+    cache::Vector{T}
+    function SVDPreconditionerLeft(Ahat::RandomizedSVD{T}) where {T <: Real}
+        return new{T}(Ahat, Ahat.Λ.diag[end], zeros(rank(Ahat)))
+    end
+end
+function Matrix(P::SVDPreconditionerLeft)
+    return 1/P.λ * P.Ahat.V*(P.Ahat.Λ + P.μ*I)*P.Ahat.U' + (I - P.Ahat.U*P.Ahat.U')
+end
+
+function LinearAlgebra.ldiv!(y::Vector{T}, P::SVDPreconditionerLeft{T}, x::Vector{T}) where {T <: Real}
+    length(y) != length(x) && error(DimensionMismatch())
+    #TODO: optimize
+    ldiv!(y, Matrix(P), x)
+    return nothing
+end
+
+mutable struct SVDPreconditionerLeftInverse{T <: Real} <: Preconditioner{T}
+    P::SVDPreconditionerLeft
+    function SVDPreconditionerLeftInverse(Ahat::RandomizedSVD{T}) where {T <: Real}
+        return new{T}(SVDPreconditionerLeft(Ahat))
+    end
+end
+
+
+mutable struct SVDPreconditionerRight{T <: Real} <: Preconditioner{T}
+    Ahat::RandomizedSVD{T}
+    λ::T
+    cache::Vector{T}
+    function SVDPreconditionerRight(Ahat::RandomizedSVD{T}) where {T <: Real}
+        return new{T}(Ahat, Ahat.Λ.diag[end], zeros(rank(Ahat)))
+    end
+end
+function Matrix(P::SVDPreconditionerRight)
+    return 1/P.λ * P.Ahat.V*(P.Ahat.Λ + P.μ*I)*P.Ahat.U' + (I - P.Ahat.V*P.Ahat.V')
+end
+
+mutable struct SVDPreconditionerRightInverse{T <: Real} <: Preconditioner{T}
+    P::SVDPreconditionerRight
+    function SVDPreconditionerRightInverse(Ahat::RandomizedSVD{T}) where {T <: Real}
+        return new{T}(SVDPreconditionerRight(Ahat))
+    end
+end
+function Matrix(Pinv::SVDPreconditionerRightInverse)
+    P = Pinv.P
+    return P.λ * P.Ahat.V*(P.Ahat.Λ + P.μ*I)*P.Ahat.U' + (I - P.Ahat.V*P.Ahat.V')
+end
+
+function LinearAlgebra.ldiv!(y::Vector{T}, P::SVDPreconditionerRight{T}, x::Vector{T}) where {T <: Real}
+    length(y) != length(x) && error(DimensionMismatch())
+    #TODO: optimize
+    ldiv!(y, Matrix(P), x)
+    return nothing
+end
+
+function LinearAlgebra.mul!(
+    y::Vector{T}, 
+    Pinv::Union{SVDPreconditionerLeftInverse{T}, SVDPreconditionerRightInverse{T}}, 
+    x::Vector{T}
+) where {T <: Real}    
+    ldiv!(y, Pinv.P, x)
+    return nothing
+end
