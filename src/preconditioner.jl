@@ -33,7 +33,7 @@ end
 
 function LinearAlgebra.ldiv!(P::NystromPreconditioner{T}, x::Vector{T}) where {T <: Real} 
     mul!(P.cache, P.A_nys.U', x)
-    @. P.cache *= (P.λ + P.μ) * 1 / (P.A_nys.Λ.diag + P.μ) - 1
+    @. P.cache *= (P.λ + P.μ) / (P.A_nys.Λ.diag + P.μ) - one(T)
     x .+= P.A_nys.U*P.cache
     return nothing
 end
@@ -70,7 +70,7 @@ function LinearAlgebra.mul!(y, P::NystromPreconditionerInverse{T}, x::Vector{T})
     length(y) != length(x) && error(DimensionMismatch())
     
     mul!(P.cache, P.A_nys.U', x)
-    @. P.cache *= (P.λ + P.μ) / (P.A_nys.Λ.diag + P.μ) - 1
+    @. P.cache *= (P.λ + P.μ) / (P.A_nys.Λ.diag + P.μ) - one(T)
     mul!(y, P.A_nys.U, P.cache)
     @. y = x + y
 end
