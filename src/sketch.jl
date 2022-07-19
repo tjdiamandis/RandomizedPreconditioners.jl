@@ -20,16 +20,21 @@ end
 # Constructs Â_nys in factored form
 # Â_nys = (AΩ)(ΩᵀAΩ)^†(AΩ)^ᵀ = UΛUᵀ
 # [Martinsson & Tropp, Algorithm 16]
-function NystromSketch(A::AbstractMatrix{T}, k::Int, r::Int; check=false) where {T <: Real}
+function NystromSketch(A::AbstractMatrix{T}, k::Int, r::Int; check=false, q=0, Ω=nothing) where {T <: Real}
     check && check_psd(A)
     n = size(A, 1)
+    A_ = copy(A)
+    Y = zeros(n, r)
 
-    Ω = randn(n, r)
-    Ω .= Array(qr(Ω).Q)
-    Y = A * Ω
-    ν = sqrt(n)*eps(norm(Y))                    #TODO: revisit this choice
-    @. Y += ν * Ω
-    B = Y / cholesky(Symmetric(Ω' * Y)).U
+    ν = sqrt(n)*eps(norm(A))                    #TODO: revisit this choice
+    A_[diagind(A)] .+= ν
+
+    Ω = GaussianTestMatrix(n, r)
+    rangefinder!(Y, A_, Ω; q=0, Z=nothing, orthogonalize=false)
+    Z = zeros(r, r)
+    mul!(Z, Ω', Y)
+
+    B = Y / cholesky(Symmetric(Z)).U
     U, Σ, _ = svd(B)
     Λ = Diagonal(max.(0, Σ.^2 .- ν)[1:k])
 
