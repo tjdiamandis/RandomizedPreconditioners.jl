@@ -1,15 +1,5 @@
 using FFTW
 
-# We highly recommend Gaussians and random partial isometries (Section 8). 
-# Sparse maps, SRTTs, and tensor random embeddings (Section 9) also work very well. 
-# In practice, all these approaches exhibit similar behavior; 
-# see Section 11.5 for more discussion. 
-# We present analysis only for Gaussian dimension reduction because it is both simple and precise.
-
-# Sparse Maps -- input matrix is Sparse
-# SRTTs - when fast trig availible
-# Tensor product maps
-
 # TestMatrix type for randomized algorithms
 # - convention is that Testmatrix Ω in n × k, where n > k
 # - TestMatrix should implement:
@@ -28,6 +18,7 @@ function GaussianTestMatrix(n, r; orthonormal=false)
 end
 Base.size(S::GaussianTestMatrix) = size(S.Ω)
 LinearAlgebra.adjoint(S::TestMatrix) = Adjoint(S)
+Matrix(S::GaussianTestMatrix) = S.Ω
 
 LinearAlgebra.mul!(Y, S::GaussianTestMatrix, X) = mul!(Y, S.Ω, X)
 LinearAlgebra.mul!(Y, Sadj::Adjoint{<:Any, <:GaussianTestMatrix}, X) = mul!(Y, Sadj.parent.Ω', X)
@@ -52,35 +43,39 @@ function SSFTTestMatrix(n, k; T=Float64)
     cache = zeros(T, n)
     return SSFTTestMatrix(p1, p2, r, e1, e2, cache)
 end
-Base.size(S::SSFTTestMatrix) = (S.n, S.k)
+Base.size(S::SSFTTestMatrix) = (length(S.p1), length(S.r))
 Base.eltype(::SSFTTestMatrix{T}) where {T} = T
+function Matrix(S::SSFTTestMatrix)
+    n, k = size(S)
+    out = zeros(n, k)
+    mul!(out, S, I(k))
+    return out
+end
 
 function LinearAlgebra.mul!(Y, Sadj::Adjoint{<:Any, <:SSFTTestMatrix{T}}, X) where {T}
     S = Sadj.parent
-    n = length(S.p1)
-    d = length(S.r)
+    n, k = size(S)
     
-    for i in 1:n
+    for i in 1:size(X, 2)
         S.cache .= X[S.p1, i]
         S.cache .*= S.e1
         dct!(S.cache)
-        @. Y[:,i] = sqrt(n/d) * S.cache[S.r]
+        @. Y[:,i] = sqrt(n/k) * S.cache[S.r]
     end
     return nothing
 end
 
 function LinearAlgebra.mul!(Y, S::SSFTTestMatrix{T}, X) where {T}
-    n = length(S.p1)
-    d = length(S.r)
+    n, k = size(S)
 
-    for i in 1:n
+    for i in 1:size(X, 2)
         Yi = @view Y[:,i]
         Yi .= zero(T)
         @views Yi[S.r] .= X[:, i]
         idct!(Yi)
         Yi .*= S.e1
-        S.cache[S.p1] .= Yi
-        Yi .*= sqrt(n/d)
+        Yi[S.p1] .= Yi
+        Yi .*= sqrt(n/k)
     end
     return nothing
 end

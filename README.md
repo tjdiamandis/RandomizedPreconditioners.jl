@@ -93,12 +93,22 @@ The Lanczos method can estimate the maximum and minimum eigenvalue simultaneousl
 λmax, λmin = RP.eig_lanczos(A; eigtype=0)
 ```
 
+## Test Matrices
+There are several choices for the random embedding used in the algorithms.
+My default, this package uses Gaussian embeddings (and Gaussian test matrices),
+but it also includes the `SSFT` and the ability to add new test matrices by
+implementing the `TestMatrix` interface.
+
+A `TestMatrix`, `Ω`, should implement matrix multiplication for itself and its
+adjoint by implementing the `!mul` method. 
+See Martinsson and Tropp [2] Section 9 for more.
+
 ## Roadmap
 - Test Matrices
-    - [ ] TestMatrix type
+    - [X] TestMatrix type
     - [ ] Sparse maps
-    - [ ] Subsampled scrambled randomized Fourier transform (SSRFT)
-    - [ ] Other subsampled trigonometric tranforms (discrete cosine, discrete Hartley)
+    - [X] Subsampled scrambled randomized Fourier transform (SSRFT)
+    - [ ] Other subsampled trigonometric tranforms (discrete cosine, discrete Hartley)?
     - [ ] Tensor random projection
 - Rangefinders
     - [ ] Lanzcos randomized rangefinder
@@ -113,6 +123,8 @@ The Lanczos method can estimate the maximum and minimum eigenvalue simultaneousl
 - Performance
     - [ ] Avoid redoing computations in adaptive sketch
     - [ ] General profiling
+- Documentation
+    - [ ] More complete general docs
 
 
 ## References
