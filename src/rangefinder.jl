@@ -2,12 +2,12 @@
 function rangefinder(A::AbstractMatrix{T}, r::Int; q::Int=0, Ω=nothing, orthogonalize=true) where {T <: Number}
     m, n = size(A)
     Y = zeros(m, r)
+    isnothing(Ω) && (Ω = GaussianTestMatrix(q > 0 ? m : n, r))
     
     if q == 0
-        isnothing(Ω) && (Ω = GaussianTestMatrix(n, r))
         Z = nothing
     else
-        Y .= GaussianTestMatrix(m, r).Ω
+        Y .= Matrix(Ω)
         Z = zeros(n, r)
     end
 
