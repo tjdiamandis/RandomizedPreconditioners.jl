@@ -23,14 +23,14 @@ end
 function NystromSketch(A::AbstractMatrix{T}, k::Int, r::Int; check=false, q=0, Ω=nothing) where {T <: Real}
     check && check_psd(A)
     n = size(A, 1)
-    A_ = copy(A)
     Y = zeros(n, r)
-
+    
     ν = sqrt(n)*eps(norm(A))                    #TODO: revisit this choice
-    A_[diagind(A)] .+= ν
-
-    Ω = GaussianTestMatrix(n, r)
-    rangefinder!(Y, A_, Ω; q=0, Z=nothing, orthogonalize=false)
+    A[diagind(A)] .+= ν
+    
+    isnothing(Ω) && (Ω = GaussianTestMatrix(n, r))
+    rangefinder!(Y, A, Ω; q=0, Z=nothing, orthogonalize=false)
+    A[diagind(A)] .-= ν
     Z = zeros(r, r)
     mul!(Z, Ω', Y)
 

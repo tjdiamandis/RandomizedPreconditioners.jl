@@ -21,6 +21,7 @@ LinearAlgebra.adjoint(S::TestMatrix) = Adjoint(S)
 Matrix(S::GaussianTestMatrix) = S.Ω
 
 LinearAlgebra.mul!(Y, S::GaussianTestMatrix, X) = mul!(Y, S.Ω, X)
+LinearAlgebra.mul!(Y, X, S::GaussianTestMatrix) = mul!(Y, X, S.Ω)
 LinearAlgebra.mul!(Y, Sadj::Adjoint{<:Any, <:GaussianTestMatrix}, X) = mul!(Y, Sadj.parent.Ω', X)
 
 
