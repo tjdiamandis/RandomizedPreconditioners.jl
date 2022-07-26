@@ -107,24 +107,31 @@ See Martinsson and Tropp [2] Section 9 for more.
 - Test Matrices
     - [X] TestMatrix type
     - [ ] Sparse maps
-    - [X] Subsampled scrambled randomized Fourier transform (SSRFT)
-    - [ ] Other subsampled trigonometric tranforms (discrete cosine, discrete Hartley)?
-    - [ ] Tensor random projection
+    - [X] Subsampled trigonometric transform
+    - [ ] DCT & Hartley option for SSRFT
+    - [ ] Tensor product maps
 - Rangefinders
     - [ ] Lanzcos randomized rangefinder
     - [ ] Chebyshev randomized rangefinder
     - [ ] Incremental rangefinder with updating
+    - [ ] Subsequent orthogonalization
+    - [ ] A posteriori error estimation
+    - [ ] Incremental rangefinder with powering
+    - [ ] Incremental rangefinder for sparse matrices
 - Sketches & Factorizations
-    - [ ] Powering option / incorporating rangefinder into Nystrom sketch
-    - [ ] powerURV
+    - [ ] Powering option / incorporating rangefinder into Nystrom sketch 
+    - [ ] powerURV (w. re-orthonormalization)
     - [ ] CPQR decomposition
+    - [ ] Improve randomized SVD
 - Preconditioners
     - [ ] Add preconditioner for symmetric systems
+    - [ ] Preconditioner for least squares
 - Performance
     - [ ] Avoid redoing computations in adaptive sketch
-    - [ ] General profiling
+    - [ ] General performance
 - Documentation
     - [ ] More complete general docs
+    - [ ] Least squares example (sketch & solve, iterative sketching, sketch & precondition)
 
 
 ## References
