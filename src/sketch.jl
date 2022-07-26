@@ -88,10 +88,10 @@ end
 # ------------------------------------------------------------------------------
 # |                               Randomized Eigendecomposition                               |
 # ------------------------------------------------------------------------------
-function EigenSketch(A::AbstractMatrix{T}, k::Int, r::Int; check=false, q::Int=0) where {T <: Real}
+function EigenSketch(A::AbstractMatrix{T}, k::Int, r::Int; check=false, q::Int=0, Ω=nothing) where {T <: Real}
     check && !issymmetric(A) && throw(ArgumentError("A must be symmetric"))
     k > r && throw(ArgumentError("k must be less than r"))
-    Q = rangefinder(A, r; q=q)
+    Q = rangefinder(A, r; q=q, Ω=Ω)
     C = Q' * A * Q
     @. C = 0.5 * (C + C')                       #TODO: is this needed for numerics?
     Λ, V = eigen(C; sortby=x->-real(x))
@@ -130,9 +130,9 @@ end
 #   ‘Streaming low-rank matrix approximation with an application to scientiﬁc simulation’
 #   'Finding structure with randomness: probabalistic algorithms for constructing 
 #    approximate matrix decompositions'
-function RandomizedSVD(A::AbstractMatrix{T}, k::Int, r::Int; q::Int=0) where {T <: Real}
+function RandomizedSVD(A::AbstractMatrix{T}, k::Int, r::Int; q::Int=0, Ω=nothing) where {T <: Real}
     k > r && throw(ArgumentError("k must be less than r"))
-    Q = rangefinder(A, r; q=q)
+    Q = rangefinder(A, r; q=q, Ω=Ω)
     C = Q'*A
     Û, Σ, V = svd(C)
     U = Q*Û
