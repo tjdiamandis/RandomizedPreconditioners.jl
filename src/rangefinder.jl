@@ -1,5 +1,5 @@
 # [Martinsson & Tropp, Algorithm 7, 9]
-function rangefinder(A::AbstractMatrix{T}, r::Int; q::Int=0, Ω=nothing, orthogonalize=true) where {T<:Number}
+function rangefinder(A::AbstractMatrix{T}, r::Int; q::Int=0, Ω=nothing, orthogonalize=true) where {T <: Number}
     m, n = size(A)
     Y = zeros(m, r)
     isnothing(Ω) && (Ω = GaussianTestMatrix(q > 0 ? m : n, r))
@@ -41,7 +41,7 @@ function rangefinder!(Y, A, Ω; q, Z, orthogonalize)
     return nothing
 end
 
-function chebyshev_rangefinder(A::AbstractMatrix{T}, ν::Float64, r::Int; q::Int=1, Ω=nothing, orthogonalize=true) where {T<:Number}
+function chebyshev_rangefinder(A::AbstractMatrix{T}, ν::Float64, r::Int; q::Int=1, Ω=nothing, orthogonalize=true) where {T <: Number}
     m, n = size(A)
 
     isnothing(Ω) && (Ω = GaussianTestMatrix(m, r))
@@ -63,4 +63,3 @@ function chebyshev_rangefinder(A::AbstractMatrix{T}, ν::Float64, r::Int; q::Int
 
 end
 
-export rangefinder, chebyshev_rangefinder
