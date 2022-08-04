@@ -95,7 +95,7 @@ The Lanczos method can estimate the maximum and minimum eigenvalue simultaneousl
 
 ## Test Matrices
 There are several choices for the random embedding used in the algorithms.
-My default, this package uses Gaussian embeddings (and Gaussian test matrices),
+By default, this package uses Gaussian embeddings (and Gaussian test matrices),
 but it also includes the `SSFT` and the ability to add new test matrices by
 implementing the `TestMatrix` interface.
 
@@ -112,7 +112,7 @@ See Martinsson and Tropp [2] Section 9 for more.
     - [ ] Tensor product maps
 - Rangefinders
     - [ ] Lanzcos randomized rangefinder
-    - [ ] Chebyshev randomized rangefinder
+    - [X] Chebyshev randomized rangefinder
     - [ ] Incremental rangefinder with updating
     - [ ] Subsequent orthogonalization
     - [ ] A posteriori error estimation
