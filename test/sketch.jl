@@ -30,13 +30,16 @@ end
     # Data
     Random.seed!(0)
     n, r_true = 500, 100
-    A = randn(n, r_true)
-    A = A*A'
+    Ã = randn(r_true, n)
+    A = Ã'*Ã
 
     r = round(Int, r_true * 1.2)
     k = round(Int, 0.9*r)
     λ = eigvals(A; sortby=x->-x)
     Anys = RP.NystromSketch(A, k, r)
+    ATAnys = RP.NystromSketch_ATA(Ã, k, r)
+    @test opnorm(Matrix(ATAnys) - Matrix(Anys)) < 1e-6
+
     @test size(Anys, 1) == n && size(Anys, 2) == n
     @test rank(Anys) == k
     @test λ[1:k] ≈ svdvals(Anys)

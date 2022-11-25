@@ -41,6 +41,30 @@ function NystromSketch(A::AbstractMatrix{T}, k::Int, r::Int; check=false, q=0, �
     return NystromSketch(U[:, 1:k], Λ)
 end
 
+# When you want to skecth M = AᵀA
+function NystromSketch_ATA(A::AbstractMatrix{T}, k::Int, r::Int) where {T}
+    m, n = size(A)
+    Y = zeros(n, r)
+    cache = zeros(m, r)
+    
+    Ω = randn(n, r)
+    mul!(cache, A, Ω)
+    mul!(Y, A', cache)
+
+    ν = sqrt(n)*eps(norm(Y))
+    @. Y = Y + ν*Ω
+
+    Z = zeros(r, r)
+    mul!(Z, Ω', Y)
+
+    B = Y / cholesky(Symmetric(Z)).U
+    U, Σ, _ = svd(B)
+    Λ = Diagonal(max.(0, Σ.^2 .- ν)[1:k])
+
+    return NystromSketch(U[:, 1:k], Λ)
+end
+
+
 check_input(A, ::Type{NystromSketch}) = check_psd(A)
 Sketch(A, k, r, ::Type{NystromSketch}; check=false, q=0) = NystromSketch(A, k, r; check=check)
 
