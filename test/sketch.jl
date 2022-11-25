@@ -81,7 +81,7 @@ end
 
     k, r = k ÷ 2, r ÷ 2
     A_sketch = RP.EigenSketch(A, k, r; q=100)
-    @test ≈(RP.estimate_norm_E(A, A_sketch; q=100), opnorm(A - Matrix(A_sketch)); rtol=2e-1)
+    @test ≈(RP.estimate_norm_E(A, A_sketch; q=200), opnorm(A - Matrix(A_sketch)); rtol=2e-1)
 
     x = randn(n)
     y = A_sketch * x
