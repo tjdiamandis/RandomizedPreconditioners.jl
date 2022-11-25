@@ -39,6 +39,7 @@ end
     Anys = RP.NystromSketch(A, k, r)
     ATAnys = RP.NystromSketch_ATA(Ã, k, r)
     @test opnorm(Matrix(ATAnys) - Matrix(Anys)) < 1e-6
+    @test opnorm(Matrix(RP.adaptive_sketch_ATA(Ã, 20, r)) - Matrix(Anys)) < 1e-6
 
     @test size(Anys, 1) == n && size(Anys, 2) == n
     @test rank(Anys) == k

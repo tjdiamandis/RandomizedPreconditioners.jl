@@ -47,7 +47,7 @@ function NystromSketch_ATA(A::AbstractMatrix{T}, k::Int, r::Int) where {T}
     Y = zeros(n, r)
     cache = zeros(m, r)
     
-    Ω = randn(n, r)
+    Ω = 1/sqrt(n) * randn(n, r)
     mul!(cache, A, Ω)
     mul!(Y, A', cache)
 
@@ -56,12 +56,37 @@ function NystromSketch_ATA(A::AbstractMatrix{T}, k::Int, r::Int) where {T}
 
     Z = zeros(r, r)
     mul!(Z, Ω', Y)
+    # Z[diagind(Z)] .+= ν                 # for numerical stability
 
     B = Y / cholesky(Symmetric(Z)).U
     U, Σ, _ = svd(B)
     Λ = Diagonal(max.(0, Σ.^2 .- ν)[1:k])
 
     return NystromSketch(U[:, 1:k], Λ)
+end
+
+# When you want to skecth M = AᵀA
+function NystromSketch_ATA!(Y::Matrix{T}, Ω::Matrix{T}, A::AbstractMatrix{T}, r::Int, r0::Int) where {T}
+    m, n = size(A)
+    r1 = r - r0
+    new_inds = r0+1:r0+r1
+    cache = zeros(m, r1)
+
+    Ω[:, new_inds] = 1/sqrt(n) * randn(n, r1)
+
+    @views mul!(cache, A, Ω[:, new_inds])
+    @views mul!(Y[:, new_inds], A', cache)
+    
+    @views ν = sqrt(n)*eps(norm(Y[:, 1:r]))
+    Z = zeros(r, r)
+    @views mul!(Z, Ω[:, 1:r]', Y[:, 1:r])
+    Z[diagind(Z)] .+= ν                 # for numerical stability
+
+    @views B = Y[:,1:r] / cholesky(Symmetric(Z)).U
+    U, Σ, _ = svd(B)
+    Λ = Diagonal(max.(0, Σ.^2 .- ν))
+
+    return NystromSketch(U, Λ)
 end
 
 
@@ -282,6 +307,39 @@ function adaptive_sketch(
             verbose && @info "||E|| = $error_metric, r = $r"
         end
         r = round(Int, r_inc_factor*r)
+    end
+    return Ahat
+end
+
+
+#TODO: better to not pre-allocate Y and Ω?
+function adaptive_sketch_ATA(
+    A::AbstractMatrix{T}, r0::Int, rmax::Int;
+    ρ=1e-4,
+    r_inc_factor=2.0,
+    tol=1e-6,
+    verbose=false
+) where {T <: Real}
+    m, n = size(A)
+    cache = (
+        u=zeros(m),
+        v=zeros(n),
+        Ahat_mul=zeros(n)
+    )
+    r = r0
+    Ahat = nothing
+    error_metric = Inf
+    Y, Ω = zeros(n, rmax), zeros(n, rmax)
+    r_prev = 0
+    while error_metric > tol && r <= rmax
+        Ahat = NystromSketch_ATA!(Y, Ω, A, r, r_prev)
+        
+        error_metric = (Ahat.Λ[end] + ρ) / ρ - 1
+        verbose && @info "κ = $error_metric, r = $r"
+
+        r_prev = r
+        r = round(Int, r_inc_factor*r)
+        r > rmax && (r = rmax;)
     end
     return Ahat
 end
