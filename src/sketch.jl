@@ -72,7 +72,8 @@ function NystromSketch_ATA!(Y::Matrix{T}, Ω::Matrix{T}, A::AbstractMatrix{T}, r
     new_inds = r0+1:r0+r1
     cache = zeros(m, r1)
 
-    Ω[:, new_inds] = 1/sqrt(n) * randn(n, r1)
+    @views randn!(Ω[:, new_inds])
+    @views Ω[:, new_inds] ./= sqrt(n)
 
     @views mul!(cache, A, Ω[:, new_inds])
     @views mul!(Y[:, new_inds], A', cache)
