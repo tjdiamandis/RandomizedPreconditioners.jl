@@ -41,6 +41,30 @@ function NystromSketch(A::AbstractMatrix{T}, k::Int, r::Int; check=false, q=0, �
     return NystromSketch(U[:, 1:k], Λ)
 end
 
+# NystromSketch for objects A that have mul! defined
+function NystromSketch(A, r::Int; q=0, Ω=nothing) where {T <: Real}
+    n = size(A, 1)
+    Y = zeros(T, n, r)
+    cache = zeros(T, m, r)
+
+    Ω = 1/sqrt(n) * randn(n, r)
+    # TODO: maybe add a powering option here?
+    mul!(Y, A, cache)
+    
+    ν = sqrt(n)*eps(norm(Y))
+    @. Y = Y + ν*Ω
+
+    Z = zeros(r, r)
+    mul!(Z, Ω', Y)
+    # Z[diagind(Z)] .+= ν                 # for numerical stability
+    
+    B = Y / cholesky(Symmetric(Z)).U
+    U, Σ, _ = svd(B)
+    Λ = Diagonal(max.(0, Σ.^2 .- ν))
+
+    return NystromSketch(U, Λ)
+end
+
 # When you want to skecth M = AᵀA
 function NystromSketch_ATA(A::AbstractMatrix{T}, k::Int, r::Int) where {T}
     m, n = size(A)
