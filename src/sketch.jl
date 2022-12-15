@@ -90,6 +90,7 @@ function NystromSketch_ATA(A::AbstractMatrix{T}, k::Int, r::Int) where {T}
 end
 
 # When you want to skecth M = AᵀA
+# Used in adaptive sketch
 function NystromSketch_ATA!(Y::Matrix{T}, Ω::Matrix{T}, A::AbstractMatrix{T}, r::Int, r0::Int) where {T}
     m, n = size(A)
     r1 = r - r0
@@ -259,14 +260,41 @@ end
 # ------------------------------------------------------------------------------
 # |                             General Utilities                              |
 # ------------------------------------------------------------------------------
+# Power method to estimate ||A - Ahat|| (specialized for Symmetric)
+function estimate_norm_E(A, Ahat::Union{NystromSketch{T}, EigenSketch{T}}; q=10, cache=nothing) where {T <: Number}
+    n = size(Ahat, 2)
+    if !isnothing(cache)
+        u, v = cache.u, cache.v
+    else
+        u, v = zeros(T, n), zeros(T, n)
+        cache = (Ahat_mul=zeros(T, n), vn=zeros(T, n))
+    end
+    
+    randn!(u)
+    normalize!(u)
+    
+    Ehat = Inf
+    for _ in 1:q
+        # u = (A - Ahat)*v
+        mul!(cache.vn, Ahat, u; cache=cache.Ahat_mul)
+        mul!(v, A, u)
+        @. v = v - cache.vn
+        Ehat = dot(u, v)
+
+        normalize!(v)
+        u .= v
+    end
+    return Ehat
+end
+
 # Power method to estimate ||A - Ahat||
-function estimate_norm_E(A::AbstractMatrix{T}, Ahat::Sketch{T}; q=10, cache=nothing) where {T <: Number}
+function estimate_norm_E(A, Ahat::Sketch{T}; q=10, cache=nothing) where {T <: Number}
     m, n = size(A)
     if !isnothing(cache)
         u, v = cache.u, cache.v
     else
-        u, v = zeros(m), zeros(n)
-        cache = (Ahat_mul=zeros(min(m, n)),)
+        u, v = zeros(T, m), zeros(T, n)
+        cache = (Ahat_mul=zeros(T, min(m, n)),)
     end
     
     u .= randn(m)
