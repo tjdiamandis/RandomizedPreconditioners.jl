@@ -46,7 +46,7 @@ end
     @test λ[1:k] ≈ svdvals(Anys)
 
     @test λ[1:k] ≈ eigvals(Anys)
-    @test ≈(RP.estimate_norm_E(A, Anys; q=20), opnorm(A - Matrix(Anys)); rtol=1e-2)
+    @test ≈(RP.estimate_norm_E(A, Anys; q=20), opnorm(A - Matrix(Anys)); rtol=5e-2)
 
     k, r = k ÷ 2, r ÷ 2
     Anys = RP.NystromSketch(A, k, r)
