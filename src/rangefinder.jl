@@ -41,25 +41,46 @@ function rangefinder!(Y, A, Ω; q, Z, orthogonalize)
     return nothing
 end
 
-function chebyshev_rangefinder(A::AbstractMatrix{T}, ν::Float64, r::Int; q::Int=1, Ω=nothing, orthogonalize=true) where {T <: Number}
+function chebyshev_rangefinder(
+    A::AbstractMatrix{T}, 
+    ν::S, 
+    r::Int; 
+    q::Int=1, 
+    Ω=nothing, 
+    orthogonalize=true
+) where {T <: Number, S <: AbstractFloat}
     m, n = size(A)
 
     isnothing(Ω) && (Ω = GaussianTestMatrix(m, r))
+    Y = zeros(m, (q+1)*r)
+    Z = zeros(n, r)
+    
+    Y0 = @view Y[:, 1:r]
+    Y1 = @view Y[:, (r+1):(2*r)]
 
-    Y0 = qr(Ω.Ω).Q
-    Y1 = (2 / ν) * A * A' * Y0 - Y0
-    Y = hcat(Y0, Y1)
+    Y0 .= Array(qr(Matrix(Ω)).Q)
+    @views mul!(Z, A', Y0)
+    @views mul!(Y1, A, Z)
+    Y1 .*= (2 / ν)
+    Y1 .-= Y0
 
-    Yi_2 = Y0
-    Yi_1 = Y1
     for i in 2:q
-        Yi = (4 / ν) * A * A' * Yi_1 - 2 * Yi_2 - Yi_2
-        Y = hcat(Y, Yi)
-        Yi_2 = Yi_1
-        Yi_1 = Yi
+        Yi = @view Y[:, ((i)*r+1):((i+1)*r)]
+        Yi1 = @view Y[:, ((i-1)*r+1):((i)*r)]
+        Yi2 = @view Y[:, ((i-2)*r+1):((i-1)*r)]
+
+        # Yᵢ = (4/ν)AAᵀYᵢ₋₁ - 2Yᵢ₋₁ - Yᵢ₋₂
+        mul!(Z, A', Yi1)
+        mul!(Yi, A, Z)
+        Yi .*= (4 / ν)
+        @. Yi -= 2Yi1 + Yi2
     end
 
-    return Array(qr(Y).Q)
+    if orthogonalize
+        Y .= Array(qr(Y).Q)
+    end
+
+    return Y
 
 end
 
