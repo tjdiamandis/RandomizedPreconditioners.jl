@@ -261,31 +261,31 @@ end
 # |                             General Utilities                              |
 # ------------------------------------------------------------------------------
 # Power method to estimate ||A - Ahat|| (specialized for Symmetric)
-function estimate_norm_E(A, Ahat::Union{NystromSketch{T}, EigenSketch{T}}; q=10, cache=nothing) where {T <: Number}
-    n = size(Ahat, 2)
-    if !isnothing(cache)
-        u, v = cache.u, cache.v
-    else
-        u, v = zeros(T, n), zeros(T, n)
-        cache = (Ahat_mul=zeros(T, n), vn=zeros(T, n))
-    end
+# function estimate_norm_E(A, Ahat::Union{NystromSketch{T}, EigenSketch{T}}; q=10, cache=nothing) where {T <: Number}
+#     n = size(Ahat, 2)
+#     if !isnothing(cache)
+#         u, v = cache.u, cache.v
+#     else
+#         u, v = zeros(T, n), zeros(T, n)
+#         cache = (Ahat_mul=zeros(T, n), vn=zeros(T, n))
+#     end
     
-    randn!(u)
-    normalize!(u)
+#     randn!(u)
+#     normalize!(u)
     
-    Ehat = Inf
-    for _ in 1:q
-        # u = (A - Ahat)*v
-        mul!(cache.vn, Ahat, u; cache=cache.Ahat_mul)
-        mul!(v, A, u)
-        @. v = v - cache.vn
-        Ehat = dot(u, v)
+#     Ehat = Inf
+#     for _ in 1:q
+#         # u = (A - Ahat)*v
+#         mul!(cache.vn, Ahat, u; cache=cache.Ahat_mul)
+#         mul!(v, A, u)
+#         @. v = v - cache.vn
+#         Ehat = dot(u, v)
 
-        normalize!(v)
-        u .= v
-    end
-    return Ehat
-end
+#         normalize!(v)
+#         u .= v
+#     end
+#     return Ehat
+# end
 
 # Power method to estimate ||A - Ahat||
 function estimate_norm_E(A, Ahat::Sketch{T}; q=10, cache=nothing) where {T <: Number}
