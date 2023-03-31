@@ -41,6 +41,81 @@ function NystromSketch(A::AbstractMatrix{T}, k::Int, r::Int; check=false, q=0, �
     return NystromSketch(U[:, 1:k], Λ)
 end
 
+# NystromSketch for objects A that have mul! defined
+function NystromSketch(A, r::Int; q=0, Ω=nothing) where {T <: Real}
+    n = size(A, 1)
+    Y = zeros(T, n, r)
+    cache = zeros(T, m, r)
+
+    Ω = 1/sqrt(n) * randn(n, r)
+    # TODO: maybe add a powering option here?
+    mul!(Y, A, cache)
+    
+    ν = sqrt(n)*eps(norm(Y))
+    @. Y = Y + ν*Ω
+
+    Z = zeros(r, r)
+    mul!(Z, Ω', Y)
+    # Z[diagind(Z)] .+= ν                 # for numerical stability
+    
+    B = Y / cholesky(Symmetric(Z)).U
+    U, Σ, _ = svd(B)
+    Λ = Diagonal(max.(0, Σ.^2 .- ν))
+
+    return NystromSketch(U, Λ)
+end
+
+# When you want to skecth M = AᵀA
+function NystromSketch_ATA(A::AbstractMatrix{T}, k::Int, r::Int) where {T}
+    m, n = size(A)
+    Y = zeros(n, r)
+    cache = zeros(m, r)
+    
+    Ω = 1/sqrt(n) * randn(n, r)
+    mul!(cache, A, Ω)
+    mul!(Y, A', cache)
+
+    ν = sqrt(n)*eps(norm(Y))
+    @. Y = Y + ν*Ω
+
+    Z = zeros(r, r)
+    mul!(Z, Ω', Y)
+    # Z[diagind(Z)] .+= ν                 # for numerical stability
+
+    B = Y / cholesky(Symmetric(Z)).U
+    U, Σ, _ = svd(B)
+    Λ = Diagonal(max.(0, Σ.^2 .- ν)[1:k])
+
+    return NystromSketch(U[:, 1:k], Λ)
+end
+
+# When you want to skecth M = AᵀA
+# Used in adaptive sketch
+function NystromSketch_ATA!(Y::Matrix{T}, Ω::Matrix{T}, A::AbstractMatrix{T}, r::Int, r0::Int) where {T}
+    m, n = size(A)
+    r1 = r - r0
+    new_inds = r0+1:r0+r1
+    cache = zeros(m, r1)
+
+    @views randn!(Ω[:, new_inds])
+    @views Ω[:, new_inds] ./= sqrt(n)
+
+    @views mul!(cache, A, Ω[:, new_inds])
+    @views mul!(Y[:, new_inds], A', cache)
+    
+    @views ν = sqrt(n)*eps(norm(Y[:, 1:r]))
+    Z = zeros(r, r)
+    @views mul!(Z, Ω[:, 1:r]', Y[:, 1:r])
+    Z[diagind(Z)] .+= ν                 # for numerical stability
+
+    @views B = Y[:,1:r] / cholesky(Symmetric(Z)).U
+    U, Σ, _ = svd(B)
+    Λ = Diagonal(max.(0, Σ.^2 .- ν))
+
+    return NystromSketch(U, Λ)
+end
+
+
 check_input(A, ::Type{NystromSketch}) = check_psd(A)
 Sketch(A, k, r, ::Type{NystromSketch}; check=false, q=0) = NystromSketch(A, k, r; check=check)
 
@@ -185,14 +260,41 @@ end
 # ------------------------------------------------------------------------------
 # |                             General Utilities                              |
 # ------------------------------------------------------------------------------
+# Power method to estimate ||A - Ahat|| (specialized for Symmetric)
+function estimate_norm_E(A, Ahat::Union{NystromSketch{T}, EigenSketch{T}}; q=10, cache=nothing) where {T <: Number}
+    n = size(Ahat, 2)
+    if !isnothing(cache)
+        u, v = cache.u, cache.v
+    else
+        u, v = zeros(T, n), zeros(T, n)
+        cache = (Ahat_mul=zeros(T, n), vn=zeros(T, n))
+    end
+    
+    randn!(u)
+    normalize!(u)
+    
+    Ehat = Inf
+    for _ in 1:q
+        # u = (A - Ahat)*v
+        mul!(cache.vn, Ahat, u; cache=cache.Ahat_mul)
+        mul!(v, A, u)
+        @. v = v - cache.vn
+        Ehat = dot(u, v)
+
+        normalize!(v)
+        u .= v
+    end
+    return Ehat
+end
+
 # Power method to estimate ||A - Ahat||
-function estimate_norm_E(A::AbstractMatrix{T}, Ahat::Sketch{T}; q=10, cache=nothing) where {T <: Number}
+function estimate_norm_E(A, Ahat::Sketch{T}; q=10, cache=nothing) where {T <: Number}
     m, n = size(A)
     if !isnothing(cache)
         u, v = cache.u, cache.v
     else
-        u, v = zeros(m), zeros(n)
-        cache = (Ahat_mul=zeros(min(m, n)),)
+        u, v = zeros(T, m), zeros(T, n)
+        cache = (Ahat_mul=zeros(T, min(m, n)),)
     end
     
     u .= randn(m)
@@ -258,6 +360,39 @@ function adaptive_sketch(
             verbose && @info "||E|| = $error_metric, r = $r"
         end
         r = round(Int, r_inc_factor*r)
+    end
+    return Ahat
+end
+
+
+#TODO: better to not pre-allocate Y and Ω?
+function adaptive_sketch_ATA(
+    A::AbstractMatrix{T}, r0::Int, rmax::Int;
+    ρ=1e-4,
+    r_inc_factor=2.0,
+    tol=1e-6,
+    verbose=false
+) where {T <: Real}
+    m, n = size(A)
+    cache = (
+        u=zeros(m),
+        v=zeros(n),
+        Ahat_mul=zeros(n)
+    )
+    r = r0
+    Ahat = nothing
+    error_metric = Inf
+    Y, Ω = zeros(n, rmax), zeros(n, rmax)
+    r_prev = 0
+    while error_metric > tol && r <= rmax
+        Ahat = NystromSketch_ATA!(Y, Ω, A, r, r_prev)
+        
+        error_metric = (Ahat.Λ[end] + ρ) / ρ - 1
+        verbose && @info "κ = $error_metric, r = $r"
+
+        r_prev = r
+        r = round(Int, r_inc_factor*r)
+        r > rmax && (r = rmax;)
     end
     return Ahat
 end
