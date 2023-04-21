@@ -42,14 +42,15 @@ function NystromSketch(A::AbstractMatrix{T}, k::Int, r::Int; check=false, q=0, �
 end
 
 # NystromSketch for objects A that have mul! defined
-function NystromSketch(A, r::Int; q=0, Ω=nothing) where {T <: Real}
-    n = size(A, 1)
-    Y = zeros(T, n, r)
-    cache = zeros(T, m, r)
+function NystromSketch(A, r::Int; n=nothing, q=0, Ω=nothing)
+    n = isnothing(n) ? size(A, 1) : n
+    Y = zeros(n, r)
 
     Ω = 1/sqrt(n) * randn(n, r)
     # TODO: maybe add a powering option here?
-    mul!(Y, A, cache)
+    for i in 1:r
+        @views mul!(Y[:, i], A, Ω[:, i])
+    end
     
     ν = sqrt(n)*eps(norm(Y))
     @. Y = Y + ν*Ω
