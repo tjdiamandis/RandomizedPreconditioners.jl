@@ -27,13 +27,18 @@ P = NystromPreconditioner(Â, μ)
 
 If you need `P⁻¹` (e.g., `Krylov.jl`), use
 ```julia
-Pinv = NystromPreconditionerInverse(Anys, μ)
+Pinv = NystromPreconditionerInverse(Â, μ)
 ```
 
 These preconditioners can be simply passed into the solvers, for example
 ```julia
 using Krylov
+
+# Use NystromPreconditionerInverse
 x, stats = cg(A+μ*I, b; M=Pinv)
+
+# Use NystromPreconditioner
+x, stats = cg(A+μ*I, b; M=P, ldiv=true)
 ```
 
 The package [`LinearSolve.jl`](https://github.com/SciML/LinearSolve.jl) defines
