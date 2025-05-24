@@ -5,9 +5,9 @@ abstract type FactoredSketch{T} <: Sketch{T} end
 # ------------------------------------------------------------------------------
 # |                               Nystrom Sketch                               |
 # ------------------------------------------------------------------------------
-struct NystromSketch{T} <: FactoredSketch{T}
-    U::Matrix{T}
-    Λ::Diagonal{T, Vector{T}}
+struct NystromSketch{T, AT <: AbstractArray{T}, V <: AbstractVector{T}} <: FactoredSketch{T}
+    U::AT
+    Λ::Diagonal{T, V}
 end
 
 #TODO: should this just wrap / generalize a NystromSketch (inc. flag for PSD)
@@ -41,12 +41,20 @@ function NystromSketch(A::AbstractMatrix{T}, k::Int, r::Int; check=false, q=0, �
     return NystromSketch(U[:, 1:k], Λ)
 end
 
-# NystromSketch for objects A that have mul! defined
-function NystromSketch(A, r::Int; n=nothing, q=0, Ω=nothing)
-    n = isnothing(n) ? size(A, 1) : n
-    Y = zeros(n, r)
 
-    Ω = 1/sqrt(n) * randn(n, r)
+"""
+    NystromSketch(A, r::Int; n=nothing, S=Array{Float64,2})
+
+Construct a Nystrom sketch of the matrix A with rank r. If A is not a matrix and instead 
+is a function that implements mul!, then S is the type of the output matrix.
+"""
+function NystromSketch(A, r::Int; n=nothing, S=Array{Float64,2})
+    n = isnothing(n) ? size(A, 1) : n
+    Y = S(undef, n, r)
+    fill!(Y, 0)
+    Ω = S(undef, n, r)
+    randn!(Ω)
+    Ω ./= sqrt(n)
     # TODO: maybe add a powering option here?
     for i in 1:r
         @views mul!(Y[:, i], A, Ω[:, i])
@@ -55,7 +63,7 @@ function NystromSketch(A, r::Int; n=nothing, q=0, Ω=nothing)
     ν = sqrt(n)*eps(norm(Y))
     @. Y = Y + ν*Ω
 
-    Z = zeros(r, r)
+    Z = S(undef, r, r)
     mul!(Z, Ω', Y)
     # Z[diagind(Z)] .+= ν                 # for numerical stability
     

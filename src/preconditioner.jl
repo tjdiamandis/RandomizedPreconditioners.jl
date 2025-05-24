@@ -47,13 +47,16 @@ end
 
 
 # Used for Krylov.jl
-struct NystromPreconditionerInverse{T <: Real}
+struct NystromPreconditionerInverse{T <: Real, V <: AbstractVector{T}}
     A_nys::NystromSketch{T}
     λ::T
     μ::T
-    cache::Vector{T}
-    function NystromPreconditionerInverse(A_nys::NystromSketch{T}, μ::T) where {T <: Real}
-        return new{T}(A_nys, A_nys.Λ.diag[end], μ, zeros(rank(A_nys)))
+    cache::V
+    function NystromPreconditionerInverse(A_nys::NystromSketch{T,AT,V}, μ::T) where {T <: Real, AT, V}
+        A_nys_Λ_diag_end = first(collect(A_nys.Λ.diag[end:end]))  # bring to CPU if needed
+        cache = V(undef, rank(A_nys))
+        fill!(cache, zero(T))
+        return new{T,V}(A_nys, A_nys_Λ_diag_end, μ, cache)
     end
 end
 Base.size(P::Union{NystromPreconditionerInverse, NystromPreconditioner}) = (size(P.A_nys.U, 1), size(P.A_nys.U, 1))
@@ -66,7 +69,7 @@ function Matrix(P::NystromPreconditionerInverse)
     )
 end
 
-function LinearAlgebra.mul!(y, P::NystromPreconditionerInverse{T}, x::Vector{T}) where {T <: Real}
+function LinearAlgebra.mul!(y, P::NystromPreconditionerInverse{T}, x::AbstractVector{T}) where {T <: Real}
     length(y) != length(x) && error(DimensionMismatch())
     
     mul!(P.cache, P.A_nys.U', x)
@@ -75,7 +78,7 @@ function LinearAlgebra.mul!(y, P::NystromPreconditionerInverse{T}, x::Vector{T})
     @. y = x + y
 end
 
-function LinearAlgebra.:*(P::NystromPreconditionerInverse{T}, x::Vector{T}) where {T <: Real}
+function LinearAlgebra.:*(P::NystromPreconditionerInverse{T}, x::AbstractVector{T}) where {T <: Real}
     y = similar(x)
     mul!(y, P, x)
     return y
