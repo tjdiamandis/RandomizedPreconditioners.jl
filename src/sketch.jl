@@ -5,9 +5,9 @@ abstract type FactoredSketch{T} <: Sketch{T} end
 # ------------------------------------------------------------------------------
 # |                               Nystrom Sketch                               |
 # ------------------------------------------------------------------------------
-struct NystromSketch{T} <: FactoredSketch{T}
-    U::Matrix{T}
-    Λ::Diagonal{T, Vector{T}}
+struct NystromSketch{T, AT <: AbstractArray{T}, V <: AbstractVector{T}} <: FactoredSketch{T}
+    U::AT
+    Λ::Diagonal{T, V}
 end
 
 #TODO: should this just wrap / generalize a NystromSketch (inc. flag for PSD)
@@ -23,7 +23,7 @@ end
 function NystromSketch(A::AbstractMatrix{T}, k::Int, r::Int; check=false, q=0, Ω=nothing) where {T <: Real}
     check && check_psd(A)
     n = size(A, 1)
-    Y = zeros(n, r)
+    Y = similar(A, n, r)
     
     ν = sqrt(n)*eps(norm(A))                    #TODO: revisit this choice
     A[diagind(A)] .+= ν
@@ -31,7 +31,7 @@ function NystromSketch(A::AbstractMatrix{T}, k::Int, r::Int; check=false, q=0, �
     isnothing(Ω) && (Ω = GaussianTestMatrix(n, r))
     rangefinder!(Y, A, Ω; q=0, Z=nothing, orthogonalize=false)
     A[diagind(A)] .-= ν
-    Z = zeros(r, r)
+    Z = similar(A, r, r)
     mul!(Z, Ω', Y)
 
     B = Y / cholesky(Symmetric(Z)).U
@@ -41,12 +41,20 @@ function NystromSketch(A::AbstractMatrix{T}, k::Int, r::Int; check=false, q=0, �
     return NystromSketch(U[:, 1:k], Λ)
 end
 
-# NystromSketch for objects A that have mul! defined
-function NystromSketch(A, r::Int; n=nothing, q=0, Ω=nothing)
-    n = isnothing(n) ? size(A, 1) : n
-    Y = zeros(n, r)
 
-    Ω = 1/sqrt(n) * randn(n, r)
+"""
+    NystromSketch(A, r::Int; n=nothing, S=Array{Float64,2})
+
+Construct a Nystrom sketch of the matrix A with rank r. If A is not a matrix and instead 
+is a function that implements mul!, then S is the type of the output matrix.
+"""
+function NystromSketch(A, r::Int; n=nothing, S=Array{Float64,2})
+    n = isnothing(n) ? size(A, 1) : n
+    Y = S(undef, n, r)
+    fill!(Y, 0)
+    Ω = S(undef, n, r)
+    randn!(Ω)
+    Ω ./= sqrt(n)
     # TODO: maybe add a powering option here?
     for i in 1:r
         @views mul!(Y[:, i], A, Ω[:, i])
@@ -55,7 +63,7 @@ function NystromSketch(A, r::Int; n=nothing, q=0, Ω=nothing)
     ν = sqrt(n)*eps(norm(Y))
     @. Y = Y + ν*Ω
 
-    Z = zeros(r, r)
+    Z = S(undef, r, r)
     mul!(Z, Ω', Y)
     # Z[diagind(Z)] .+= ν                 # for numerical stability
     
@@ -69,8 +77,8 @@ end
 # When you want to skecth M = AᵀA
 function NystromSketch_ATA(A::AbstractMatrix{T}, k::Int, r::Int) where {T}
     m, n = size(A)
-    Y = zeros(n, r)
-    cache = zeros(m, r)
+    Y = similar(A, n, r)
+    cache = similar(A, m, r)
     
     Ω = 1/sqrt(n) * randn(n, r)
     mul!(cache, A, Ω)
@@ -79,7 +87,7 @@ function NystromSketch_ATA(A::AbstractMatrix{T}, k::Int, r::Int) where {T}
     ν = sqrt(n)*eps(norm(Y))
     @. Y = Y + ν*Ω
 
-    Z = zeros(r, r)
+    Z = similar(A, r, r)
     mul!(Z, Ω', Y)
     # Z[diagind(Z)] .+= ν                 # for numerical stability
 
@@ -96,7 +104,7 @@ function NystromSketch_ATA!(Y::Matrix{T}, Ω::Matrix{T}, A::AbstractMatrix{T}, r
     m, n = size(A)
     r1 = r - r0
     new_inds = r0+1:r0+r1
-    cache = zeros(m, r1)
+    cache = similar(Y, m, r1)
 
     @views randn!(Ω[:, new_inds])
     @views Ω[:, new_inds] ./= sqrt(n)
@@ -105,7 +113,7 @@ function NystromSketch_ATA!(Y::Matrix{T}, Ω::Matrix{T}, A::AbstractMatrix{T}, r
     @views mul!(Y[:, new_inds], A', cache)
     
     @views ν = sqrt(n)*eps(norm(Y[:, 1:r]))
-    Z = zeros(r, r)
+    Z = similar(Y, r, r)
     @views mul!(Z, Ω[:, 1:r]', Y[:, 1:r])
     Z[diagind(Z)] .+= ν                 # for numerical stability
 
@@ -144,7 +152,7 @@ end
 Matrix(Anys::Union{NystromSketch, EigenSketch}) = Anys.U*Anys.Λ*Anys.U'
 LinearAlgebra.eigvals(Anys::Union{NystromSketch, EigenSketch}) = Anys.Λ.diag    # decreasing order
 
-function LinearAlgebra.mul!(y, Anys::Union{NystromSketch, EigenSketch}, x; cache=zeros(rank(Anys)))
+function LinearAlgebra.mul!(y, Anys::Union{NystromSketch, EigenSketch}, x; cache=similar(x, rank(Anys)))
     length(y) != length(x) || length(y) != size(Anys, 1) && error(DimensionMismatch())
     r = rank(Anys)
     @views mul!(cache[1:r], Anys.U', x)
@@ -155,7 +163,7 @@ end
 
 function LinearAlgebra.:*(Anys::Union{NystromSketch, EigenSketch}, x::AbstractVector)
     n = size(Anys, 1)
-    y = zeros(n)
+    y = similar(x, n)
     mul!(y, Anys, x)
     return y
 end
@@ -231,7 +239,7 @@ function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, Ahat::RandomizedSVD
     show(io, mime, Ahat.V)
 end
 
-function LinearAlgebra.mul!(y, Ahat::RandomizedSVD, x; cache=zeros(rank(Ahat)))
+function LinearAlgebra.mul!(y, Ahat::RandomizedSVD, x; cache=similar(x, rank(Ahat)))
     length(x) != size(Ahat, 2) || length(y) != size(Ahat, 1) && error(DimensionMismatch())
     r = rank(Ahat)
     @views mul!(cache[1:r], Ahat.V', x)
@@ -240,7 +248,7 @@ function LinearAlgebra.mul!(y, Ahat::RandomizedSVD, x; cache=zeros(rank(Ahat)))
     return nothing
 end
 
-function LinearAlgebra.mul!(x, Ahat_::Adjoint{T, RandomizedSVD{T}}, y; cache=zeros(rank(Ahat))) where {T}
+function LinearAlgebra.mul!(x, Ahat_::Adjoint{T, RandomizedSVD{T}}, y; cache=similar(y, rank(Ahat))) where {T}
     Ahat = parent(Ahat_)
     length(x) != size(Ahat, 2) || length(y) != size(Ahat, 1) && error(DimensionMismatch())
     r = rank(Ahat)
@@ -251,7 +259,7 @@ function LinearAlgebra.mul!(x, Ahat_::Adjoint{T, RandomizedSVD{T}}, y; cache=zer
 end
 
 function LinearAlgebra.:*(Ahat::Union{Adjoint{T, RandomizedSVD{T}}, RandomizedSVD{T}}, x::AbstractVector) where {T}
-    y = zeros(size(Ahat, 1))
+    y = similar(x, size(Ahat, 1))
     mul!(y, Ahat, x)
     return y
 end

@@ -46,7 +46,7 @@ function eig_lanczos(
     tol=1e-12, 
     eigtype=1, 
     orthogonalize=false
-) where {T}
+)
     n = size(M, 1)
     iszero(q) && (q = ceil(Int, 20*log(n)))
     max_iters = min(q, n-1)
