@@ -56,6 +56,9 @@ performance. Possible choices include `k = r - 10` and `k = round(Int, 0.95*r)`.
 Sketches allow for faster (approximate) multiplication (`*` and `mul!`) and are
 used to construct preconditioners.
 
+If passing a matrix-free operator A, you can set the type of the cache as a keyword argument, 
+`NystromSketch(A, r::Int; n=nothing, S=Array{Float64,2})`.
+
 ### Positive Semidefinite Matrices: Nyström Sketch [2, Alg. 16]
 Given a positive semidefinite matrix `A`, construct the Nyström Sketch `Â ≈ A` via
 ```julia
