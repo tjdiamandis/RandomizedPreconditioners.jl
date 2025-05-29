@@ -20,11 +20,16 @@ end
 # Constructs Â_nys in factored form
 # Â_nys = (AΩ)(ΩᵀAΩ)^†(AΩ)^ᵀ = UΛUᵀ
 # [Martinsson & Tropp, Algorithm 16]
-function NystromSketch(A::AbstractMatrix{T}, k::Int, r::Int; check=false, q=0, Ω=nothing) where {T <: Real}
-    check && check_psd(A)
+function NystromSketch(A::AbstractMatrix{T}; k::Int=0, r::Int=0, check=false, Ω=nothing) where {T <: Real}
     n = size(A, 1)
-    Y = similar(A, n, r)
+    if iszero(k) || iszero(r)
+        r = min(n ÷ 10 + 1, 50)
+        k = r
+    end
+    k > r && throw(ArgumentError("k must be less than r"))
+    check && check_psd(A)
     
+    Y = similar(A, n, r)
     ν = sqrt(n)*eps(norm(A))                    #TODO: revisit this choice
     A[diagind(A)] .+= ν
     
@@ -41,6 +46,9 @@ function NystromSketch(A::AbstractMatrix{T}, k::Int, r::Int; check=false, q=0, �
     return NystromSketch(U[:, 1:k], Λ)
 end
 
+function NystromSketch(A::AbstractMatrix{T}, k::Int, r::Int; check=false, Ω=nothing) where {T <: Real}
+    return NystromSketch(A; k=k, r=r, check=check, Ω=Ω)
+end
 
 """
     NystromSketch(A, r::Int; n=nothing, S=Array{Float64,2})
@@ -48,13 +56,19 @@ end
 Construct a Nystrom sketch of the matrix A with rank r. If A is not a matrix and instead 
 is a function that implements mul!, then S is the type of the output matrix.
 """
-function NystromSketch(A, r::Int; n=nothing, S=Array{Float64,2})
+function NystromSketch(A; r::Int, n=nothing, S=Array{Float64,2})
     n = isnothing(n) ? size(A, 1) : n
+    if iszero(r)
+        r = min(n ÷ 10 + 1, 50)
+    end
+    
     Y = S(undef, n, r)
     fill!(Y, 0)
+
     Ω = S(undef, n, r)
     randn!(Ω)
     Ω ./= sqrt(n)
+
     # TODO: maybe add a powering option here?
     for i in 1:r
         @views mul!(Y[:, i], A, Ω[:, i])
@@ -72,6 +86,10 @@ function NystromSketch(A, r::Int; n=nothing, S=Array{Float64,2})
     Λ = Diagonal(max.(0, Σ.^2 .- ν))
 
     return NystromSketch(U, Λ)
+end
+
+function NystromSketch(A, r::Int; check=false, Ω=nothing)
+    return NystromSketch(A; r=r, check=check, Ω=Ω)
 end
 
 # When you want to skecth M = AᵀA

@@ -10,24 +10,18 @@ These approximate inverses can dramatically speed up iterative linear system sol
 ## Preconditioners
 
 ### Positive Definite Systems: Randomized Nyström Preconditioner [1]
-Given a positive semidefinite matrix `A`, the Nyström Sketch `Â ≈ A` is constructed by
+Construct a randomized Nyström preconditioner `P ≈ A + μ*I` for a positive definite linear system `Ax = b` with
 ```julia
 using RandomizedPreconditioners
-Â = NystromSketch(A, k, r)
+P = NystromPreconditioner(A)
 ```
-where `k` and `r` are parameters with `k ≤ r`.
-
-We can use `Â` to construct a preconditioner `P ≈ A + μ*I` for the system 
-`(A + μ*I)x = b`, which is solved by conjugate gradients.
-
-If you need `P` (e.g., `IterativeSolvers.jl`), use
+If you need `P⁻¹` use
 ```julia
-P = NystromPreconditioner(Â, μ)
+Pinv = NystromPreconditionerInverse(A)
 ```
-
-If you need `P⁻¹` (e.g., `Krylov.jl`), use
+The preconditioner has the form `P ≈ Â + μ*I`, where `Â` an Nyström sketch of `A` and `μ` is a small positive number. The default value of `μ` is `1e-6`, but it can be specified by passing `μ` to the constructor:
 ```julia
-Pinv = NystromPreconditionerInverse(Â, μ)
+P = NystromPreconditioner(A; μ=1e-3)
 ```
 
 These preconditioners can be simply passed into the solvers, for example
@@ -40,6 +34,7 @@ x, stats = cg(A+μ*I, b; M=Pinv)
 # Use NystromPreconditioner
 x, stats = cg(A+μ*I, b; M=P, ldiv=true)
 ```
+Pay attention to if your solver uses `P` (and applies the preconditioner with `ldiv!`) or `P⁻¹` (and applies the preconditioner with `mul!`).
 
 The package [`LinearSolve.jl`](https://github.com/SciML/LinearSolve.jl) defines
 a convenient common interface to access all the Krylov implementations, which
@@ -65,9 +60,15 @@ If passing a matrix-free operator A, you can set the type of the cache as a keyw
 `NystromSketch(A, r::Int; n=nothing, S=Array{Float64,2})`.
 
 ### Positive Semidefinite Matrices: Nyström Sketch [2, Alg. 16]
+Given a positive semidefinite matrix `A`, construct the Nyström Sketch `Â ≈ A` via
 ```julia
 using RandomizedPreconditioners
-Â = NystromSketch(A, k, r)
+Â = NystromSketch(A)
+```
+
+The sketch size `r` and the preconditioner size `k` (where `k ≤ r`) may also be specified directly:
+```julia
+Â = NystromSketch(A; k=k, r=r)
 ```
 
 ### Symmetric Matrices: Eigen Sketch / Generalized Nyström Sketch

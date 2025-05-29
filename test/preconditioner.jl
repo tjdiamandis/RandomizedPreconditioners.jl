@@ -28,8 +28,10 @@
             ldiv!(P, x)
             @test y ≈ x
         end
-        
-        
+
+        # test one line constructor
+        P2 = RP.NystromPreconditioner(A; μ=1e-3)
+        @test opnorm(Matrix(P) - Matrix(P2)) < μ
     end
     
     @testset "Inverse" begin
@@ -40,6 +42,10 @@
             x = randn(n)
             @test Ptrue_inv*x ≈ Pinv*x
         end
+
+        # test one line constructor
+        Pinv2 = RP.NystromPreconditionerInverse(A; μ=1e-3)
+        @test opnorm(Matrix(Pinv) - Matrix(Pinv2)) < μ
     end
 
 end

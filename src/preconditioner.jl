@@ -22,6 +22,13 @@ function Matrix(P::NystromPreconditioner)
     )
 end
 
+# one line constructor
+function NystromPreconditioner(A::AbstractMatrix{T}; μ=1e-6) where {T <: Real}
+    Anys = NystromSketch(A)
+    μ = max(Anys.Λ.diag[end], μ)
+    return NystromPreconditioner(Anys, μ)
+end
+
 # We care about applying P⁻¹
 # P⁻¹x = U*(λ + μ)*(Λ + μI)⁻¹*Uᵀ*x + (I - UUᵀ)*x
 #      = x - U*((λ + μ)*(Λ + μI)⁻¹ + I)*Uᵀ*x
@@ -70,6 +77,13 @@ function Matrix(P::NystromPreconditionerInverse)
         (P.λ + P.μ) * P.A_nys.U*inv(P.A_nys.Λ + P.μ*I)*P.A_nys.U' 
         + (I - P.A_nys.U*P.A_nys.U')
     )
+end
+
+# one line constructor
+function NystromPreconditionerInverse(A::AbstractMatrix{T}; μ=1e-6) where {T <: Real}
+    Anys = NystromSketch(A)
+    μ = max(Anys.Λ.diag[end], μ)
+    return NystromPreconditionerInverse(Anys, μ)
 end
 
 function LinearAlgebra.mul!(y, P::NystromPreconditionerInverse{T}, x::AbstractVector{T}) where {T <: Real}
