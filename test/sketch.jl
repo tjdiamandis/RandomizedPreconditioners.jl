@@ -36,7 +36,7 @@ end
     r = round(Int, r_true * 1.2)
     k = round(Int, 0.9*r)
     λ = eigvals(A; sortby=x->-x)
-    Anys = RP.NystromSketch(A, k, r)
+    Anys = RP.NystromSketch(A; k=k, r=r)
     ATAnys = RP.NystromSketch_ATA(Ã, k, r)
     @test opnorm(Matrix(ATAnys) - Matrix(Anys)) < 1e-6
     @test opnorm(Matrix(RP.adaptive_sketch_ATA(Ã, 20, r)) - Matrix(Anys)) < 1e-6
@@ -49,7 +49,7 @@ end
     @test ≈(RP.estimate_norm_E(A, Anys; q=20), opnorm(A - Matrix(Anys)); rtol=5e-2)
 
     k, r = k ÷ 2, r ÷ 2
-    Anys = RP.NystromSketch(A, k, r)
+    Anys = RP.NystromSketch(A; k=k, r=r)
     @test ≈(RP.estimate_norm_E(A, Anys; q=50), opnorm(A - Matrix(Anys)); rtol=2e-1)
 
     x = randn(n)
@@ -58,6 +58,18 @@ end
     z = zeros(n)
 
     test_adaptive_sketch(A, RP.NystromSketch, 128; k_factor=0.9, ρ=1e-4, tol=1e-6, condition_number=true)
+
+    # test with a struct that defines mul!
+    struct TestOperator{T}
+        A::Matrix{T}
+    end
+    function LinearAlgebra.mul!(y::AbstractVector{T}, A::TestOperator{T}, x::AbstractVector{T}) where {T}
+        mul!(y, A.A, x)
+    end
+
+    Anys = RP.NystromSketch(TestOperator(A), r=r; n=n)
+    @test ≈(RP.estimate_norm_E(A, Anys; q=50), opnorm(A - Matrix(Anys)); rtol=2e-1)
+
 end
 
 @testset "EigenSketch" begin
