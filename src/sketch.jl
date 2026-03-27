@@ -29,14 +29,14 @@ function NystromSketch(A::AbstractMatrix{T}; k::Int=0, r::Int=0, check=false, Ω
     k > r && throw(ArgumentError("k must be less than r"))
     check && check_psd(A)
     
-    Y = similar(A, n, r)
+    Y = Matrix{T}(undef, n, r)
     ν = sqrt(n)*eps(norm(A))                    #TODO: revisit this choice
     A[diagind(A)] .+= ν
     
     isnothing(Ω) && (Ω = GaussianTestMatrix(n, r))
     rangefinder!(Y, A, Ω; q=0, Z=nothing, orthogonalize=false)
     A[diagind(A)] .-= ν
-    Z = similar(A, r, r)
+    Z = Matrix{T}(undef, r, r)
     mul!(Z, Ω', Y)
 
     B = Y / cholesky(Symmetric(Z)).U
@@ -95,8 +95,8 @@ end
 # When you want to skecth M = AᵀA
 function NystromSketch_ATA(A::AbstractMatrix{T}, k::Int, r::Int) where {T}
     m, n = size(A)
-    Y = similar(A, n, r)
-    cache = similar(A, m, r)
+    Y = Matrix{T}(undef, n, r)
+    cache = Matrix{T}(undef, m, r)
     
     Ω = 1/sqrt(n) * randn(n, r)
     mul!(cache, A, Ω)
@@ -105,7 +105,7 @@ function NystromSketch_ATA(A::AbstractMatrix{T}, k::Int, r::Int) where {T}
     ν = sqrt(n)*eps(norm(Y))
     @. Y = Y + ν*Ω
 
-    Z = similar(A, r, r)
+    Z = Matrix{T}(undef, r, r)
     mul!(Z, Ω', Y)
     # Z[diagind(Z)] .+= ν                 # for numerical stability
 
